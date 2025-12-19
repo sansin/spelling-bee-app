@@ -47,46 +47,36 @@ function getPrioritizedWords(grade) {
   return [...filteredWords].sort((a, b) => (wrongs[b.word] || 0) - (wrongs[a.word] || 0));
 }
 let voices = [];
-let piperInitialized = false;
+let selectedVoice = null;
 
-// Initialize Piper TTS
-async function initializePiper() {
-  if (piperInitialized) return;
-  try {
-    await piper.initialize();
-    piperInitialized = true;
-    console.log('Piper TTS initialized');
-  } catch (err) {
-    console.error('Failed to initialize Piper TTS:', err);
+speechSynthesis.onvoiceschanged = () => {
+  voices = speechSynthesis.getVoices();
+  // Select the best natural-sounding voice available
+  if (voices.length > 0 && !selectedVoice) {
+    // Try to find a high-quality voice
+    selectedVoice = voices.find(v => v.name.includes('Google')) ||
+                    voices.find(v => v.name.includes('Native')) ||
+                    voices.find(v => v.lang === 'en-US') ||
+                    voices[0];
+    console.log('Selected voice:', selectedVoice?.name);
   }
-}
-
-// Call on page load
-initializePiper();
+};
 
 async function speakWord(word) {
-  if (!piperInitialized) {
-    await initializePiper();
+  const utterance = new SpeechSynthesisUtterance(word);
+  
+  // Use selected voice if available
+  if (selectedVoice) {
+    utterance.voice = selectedVoice;
   }
   
-  if (typeof piper !== 'undefined') {
-    try {
-      // Using a natural-sounding US English voice
-      const audio = await piper.textToSpeech(word, {
-        voice: 'en_US-lessac-medium',
-        speakerId: 0
-      });
-      
-      // Play the audio
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const source = audioContext.createBufferSource();
-      source.buffer = await audioContext.decodeAudioData(audio);
-      source.connect(audioContext.destination);
-      source.start(0);
-    } catch (err) {
-      console.error('Piper TTS error:', err);
-    }
-  }
+  // Optimize for natural sound
+  utterance.rate = 0.85; // Slower, clearer speech
+  utterance.pitch = 1.0;
+  utterance.volume = 1.0;
+  
+  speechSynthesis.cancel(); // Cancel any ongoing speech
+  speechSynthesis.speak(utterance);
 }
 
 // Start test test
