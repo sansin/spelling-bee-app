@@ -49,20 +49,21 @@ function getPrioritizedWords(grade) {
 let voices = [];
 speechSynthesis.onvoiceschanged = () => {
   voices = speechSynthesis.getVoices();
+  console.log(voices.map(v => `${v.name} (${v.lang}, local: ${v.localService})`));
   // Log available voices for debugging: console.log(voices);
 };
 
 function speakWord(word) {
-  if ('speechSynthesis' in window) {
-    const utterance = new SpeechSynthesisUtterance(word);
-    // Select a human-like voice (prioritize Google neural if available)
-    const preferredVoice = voices.find(v => v.name.includes('Google') && v.lang === 'en-US') ||
-                            voices.find(v => v.lang === 'en-US'); // Fallback to any US English
-    if (preferredVoice) utterance.voice = preferredVoice;
-    speechSynthesis.speak(utterance);
-  } else {
-    alert('Browser does not support text-to-speech.');
-  }
+  const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=${encodeURIComponent(word)}`;
+  const audio = new Audio(ttsUrl);
+  audio.play().catch(err => {
+    console.error('TTS playback error:', err);
+    // Fallback to original browser TTS if needed
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(word);
+      speechSynthesis.speak(utterance);
+    }
+  });
 }
 
 // Start test test
