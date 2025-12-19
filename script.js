@@ -46,44 +46,54 @@ function getPrioritizedWords(grade) {
   }, {});
   return [...filteredWords].sort((a, b) => (wrongs[b.word] || 0) - (wrongs[a.word] || 0));
 }
+// ElevenLabs API configuration
+const ELEVENLABS_API_KEY = 'sk_8180b150e0883442bfc5d6b5199fbb5cc6f596b5c740cd77';
+const ELEVENLABS_VOICE_ID = '21m00Tcm4TlvDq8ikWAM'; // Rachel - natural US English female voice
+const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
+
 let voices = [];
-let selectedVoice = null;
 
-// Initialize voices when they load
-if ('speechSynthesis' in window) {
-  speechSynthesis.onvoiceschanged = () => {
-    voices = speechSynthesis.getVoices();
-    console.log('Available voices:', voices.length);
-    voices.forEach((v, i) => console.log(i, v.name, v.lang));
-  };
-  
-  // Trigger voices to load
-  window.speechSynthesis.getVoices();
-}
+async function speakWord(word) {
+  try {
+    console.log('Speaking word:', word);
+    
+    // Call ElevenLabs API
+    const response = await fetch(`${ELEVENLABS_API_URL}/${ELEVENLABS_VOICE_ID}`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': ELEVENLABS_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text: word,
+        model_id: 'eleven_monolingual_v1',
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75,
+        },
+      }),
+    });
 
-function speakWord(word) {
-  if (!('speechSynthesis' in window)) {
-    console.error('Speech Synthesis not supported');
-    return;
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    // Convert response to audio blob
+    const audioBlob = await response.blob();
+    const audioUrl = URL.createObjectURL(audioBlob);
+    
+    // Play the audio
+    const audio = new Audio(audioUrl);
+    audio.onplay = () => console.log('✓ Audio started');
+    audio.onended = () => console.log('✓ Audio ended');
+    audio.onerror = (e) => console.error('✗ Audio error:', e);
+    
+    await audio.play();
+    console.log('ElevenLabs TTS played successfully');
+  } catch (error) {
+    console.error('ElevenLabs TTS error:', error);
+    alert('Voice playback failed. Please check your internet connection.');
   }
-  
-  console.log('Speaking word:', word);
-  const utterance = new SpeechSynthesisUtterance(word);
-  
-  // Set speech parameters
-  utterance.rate = 0.8;
-  utterance.pitch = 1.0;
-  utterance.volume = 1.0;
-  
-  // Add event listeners for debugging
-  utterance.onstart = () => console.log('✓ Speech started');
-  utterance.onend = () => console.log('✓ Speech ended');
-  utterance.onerror = (e) => console.error('✗ Speech error:', e.error);
-  
-  // Cancel previous speech and speak
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
-  console.log('Speak command issued');
 }
 
 // Start test test
