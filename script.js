@@ -47,39 +47,15 @@ function getPrioritizedWords(grade) {
   return [...filteredWords].sort((a, b) => (wrongs[b.word] || 0) - (wrongs[a.word] || 0));
 }
 let voices = [];
-speechSynthesis.onvoiceschanged = () => {
-  voices = speechSynthesis.getVoices();
-};
 
 function speakWord(word) {
-  if ('speechSynthesis' in window) {
-    const utterance = new SpeechSynthesisUtterance(word);
-    
-    // Select the best available natural voice
-    const preferredVoices = [
-      'Google UK English Female', // Chrome on macOS
-      'Samantha', // macOS native
-      'Victoria', // macOS alternative
-      'Google US English', // Chrome fallback
-    ];
-    
-    const availableVoices = speechSynthesis.getVoices();
-    const selectedVoice = availableVoices.find(v => 
-      preferredVoices.some(pv => v.name.includes(pv))
-    ) || availableVoices.find(v => v.lang.startsWith('en'));
-    
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-    }
-    
-    // Adjust speech parameters for natural sound
-    utterance.rate = 0.9; // Slightly slower (0.9 instead of 1)
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0;
-    
-    speechSynthesis.speak(utterance);
+  if (typeof responsiveVoice !== 'undefined' && responsiveVoice.isPlaying === false) {
+    // Using ResponsiveVoice for natural-sounding voice (free)
+    responsiveVoice.speak(word, 'US English Female', {
+      rate: 0.9 // Slightly slower for clarity
+    });
   } else {
-    alert('Browser does not support text-to-speech.');
+    console.warn('ResponsiveVoice not loaded');
   }
 }
 
@@ -113,12 +89,7 @@ function nextWord() {
 
 // Listen button (TTS)
 listenBtn.addEventListener('click', () => {
-  if ('speechSynthesis' in window) {
-    const utterance = new SpeechSynthesisUtterance(currentWord);
-    speechSynthesis.speak(utterance);
-  } else {
-    alert('Browser does not support text-to-speech.');
-  }
+  speakWord(currentWord);
 });
 
 // Submit attempt
