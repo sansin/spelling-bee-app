@@ -46,51 +46,85 @@ function getPrioritizedWords(grade) {
   }, {});
   return [...filteredWords].sort((a, b) => (wrongs[b.word] || 0) - (wrongs[a.word] || 0));
 }
-// Backend API URL (will be updated after deployment)
-const BACKEND_URL = 'https://spelling-bee-backend.onrender.com';
-
+// Web Speech API - Use browser's native voices (completely free)
 let voices = [];
+let selectedVoice = null;
+
+// Load available voices
+if ('speechSynthesis' in window) {
+  speechSynthesis.onvoiceschanged = () => {
+    voices = speechSynthesis.getVoices();
+    
+    // Select the best natural-sounding voice available
+    const voicePreferences = [
+      'Samantha',      // macOS - natural female voice
+      'Victoria',      // macOS - alternative natural voice
+      'Google UK English Female', // Chrome - natural
+      'Google US English Female', // Chrome fallback
+      'Microsoft Zira', // Windows alternative
+    ];
+    
+    selectedVoice = voices.find(v => 
+      voicePreferences.some(pref => v.name.includes(pref))
+    );
+    
+    // If no preferred voice found, use first English voice
+    if (!selectedVoice) {
+      selectedVoice = voices.find(v => v.lang.startsWith('en-'));
+    }
+    
+    // If still no voice, use first available
+    if (!selectedVoice && voices.length > 0) {
+      selectedVoice = voices[0];
+    }
+    
+    if (selectedVoice) {
+      console.log('Selected voice:', selectedVoice.name, '(' + selectedVoice.lang + ')');
+    }
+  };
+  
+  // Trigger voices to load
+  speechSynthesis.getVoices();
+}
 
 async function speakWord(word) {
+  if (!('speechSynthesis' in window)) {
+    alert('Speech synthesis not supported in this browser');
+    return;
+  }
+  
   try {
     console.log('Speaking word:', word);
     
-    // Call your backend proxy instead of ElevenLabs directly
-    const response = await fetch(`${BACKEND_URL}/api/speak`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        text: word,
-      }),
-    });
-
-    console.log('API Response status:', response.status);
+    const utterance = new SpeechSynthesisUtterance(word);
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error Response:', errorText);
-      throw new Error(`API error ${response.status}: ${errorText}`);
+    // Use selected voice if available
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
     }
-
-    // Convert response to audio blob
-    const audioBlob = await response.blob();
-    console.log('Audio blob received, size:', audioBlob.size);
     
-    const audioUrl = URL.createObjectURL(audioBlob);
+    // Optimize for natural, clear speech
+    utterance.rate = 0.85;    // Slightly slower - easier to understand
+    utterance.pitch = 1.0;    // Normal pitch
+    utterance.volume = 1.0;   // Full volume
     
-    // Play the audio
-    const audio = new Audio(audioUrl);
-    audio.onplay = () => console.log('✓ Audio started');
-    audio.onended = () => {
-      console.log('✓ Audio ended');
-      URL.revokeObjectURL(audioUrl);
+    // Event handlers for debugging
+    utterance.onstart = () => {
+      console.log('✓ Speech started');
     };
-    audio.onerror = (e) => console.error('✗ Audio playback error:', e);
     
-    await audio.play();
-    console.log('TTS played successfully');
+    utterance.onend = () => {
+      console.log('✓ Speech ended');
+    };
+    
+    utterance.onerror = (e) => {
+      console.error('✗ Speech error:', e.error);
+    };
+    
+    // Cancel any previous speech and speak
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utterance);
+    
   } catch (error) {
     console.error('TTS error:', error);
     alert('Voice playback failed: ' + error.message);
