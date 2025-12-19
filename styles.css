@@ -1,0 +1,72 @@
+body {
+    background: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 20px;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+h1, h2 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+select, input[type="text"], button {
+    display: block;
+    margin: 10px auto;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 80%;
+    max-width: 300px;
+}
+
+button {
+    background: #007bff;
+    color: white;
+    cursor: pointer;
+    border: none;
+}
+
+button:hover {
+    background: #0056b3;
+}
+
+#feedback {
+    font-size: 24px;
+    margin-top: 20px;
+    animation: confetti 1s ease-in-out;
+}
+
+@keyframes confetti {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.correct #feedback {
+    color: green;
+}
+
+.incorrect #feedback {
+    color: red;
+}
+
+#test button, #home button, #trends-view button {
+    width: auto;
+    display: inline-block;
+    margin: 10px;
+}
+
+canvas {
+    max-width: 100%;
+    margin: 20px auto;
+}
+
+@media (max-width: 600px) {
+    select, input[type="text"], button {
+        width: 90%;
+    }
+}

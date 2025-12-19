@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "grade": "1-3",
+    "word": "cat"
+  },
+  {
+    "id": 2,
+    "grade": "1-3",
+    "word": "dog"
+  },
+  {
+    "id": 3,
+    "grade": "1-3",
+    "word": "apple"
+  },
+  {
+    "id": 4,
+    "grade": "4-6",
+    "word": "elephant"
+  },
+  {
+    "id": 5,
+    "grade": "4-6",
+    "word": "mountain"
+  },
+  {
+    "id": 6,
+    "grade": "4-6",
+    "word": "computer"
+  }
+]

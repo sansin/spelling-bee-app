@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spelling Bee Practice App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="home">
+        <h1>Spelling Bee Practice</h1>
+        <label for="grade">Select Grade Level:</label>
+        <select id="grade">
+            <option value="all">All Grades</option>
+            <option value="1-3">Grades 1-3</option>
+            <option value="4-6">Grades 4-6</option>
+            <!-- Add more options as needed based on your words.json -->
+        </select>
+        <button id="start">Start Test</button>
+        <button id="custom">Upload Custom Words</button>
+        <input type="file" id="upload" accept=".json,.csv" style="display: none;">
+        <button id="trends">View Trends</button>
+    </div>
+
+    <div id="test" style="display: none;">
+        <h2 id="word-prompt">Guess the spelling</h2>
+        <button id="listen">Listen 🎤</button>
+        <input id="attempt" type="text" placeholder="Type the word here">
+        <button id="submit">Submit</button>
+        <button id="next" style="display: none;">Next</button>
+        <button id="end">End Session</button>
+        <div id="feedback"></div>
+    </div>
+
+    <div id="trends-view" style="display: none;">
+        <h2>Your Trends</h2>
+        <p id="accuracy"></p>
+        <p id="common-mistakes"></p>
+        <canvas id="accuracy-chart" width="400" height="200"></canvas>
+        <button id="back-home">Back to Home</button>
+    </div>
+
+    <script src="script.js"></script>
+    <!-- For charts in trends, add this CDN later in script.js if needed -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+</body>
+</html>
