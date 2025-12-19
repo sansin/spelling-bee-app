@@ -47,8 +47,7 @@ function getPrioritizedWords(grade) {
   return [...filteredWords].sort((a, b) => (wrongs[b.word] || 0) - (wrongs[a.word] || 0));
 }
 // Backend API URL (will be updated after deployment)
-const BACKEND_URL = 'http://localhost:3000'; // For local testing
-// Change to your Render backend URL after deployment
+const BACKEND_URL = 'https://spelling-bee-backend.onrender.com';
 
 let voices = [];
 
