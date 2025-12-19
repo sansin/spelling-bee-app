@@ -47,15 +47,45 @@ function getPrioritizedWords(grade) {
   return [...filteredWords].sort((a, b) => (wrongs[b.word] || 0) - (wrongs[a.word] || 0));
 }
 let voices = [];
+let piperInitialized = false;
 
-function speakWord(word) {
-  if (typeof responsiveVoice !== 'undefined' && responsiveVoice.isPlaying === false) {
-    // Using ResponsiveVoice for natural-sounding voice (free)
-    responsiveVoice.speak(word, 'US English Female', {
-      rate: 0.9 // Slightly slower for clarity
-    });
-  } else {
-    console.warn('ResponsiveVoice not loaded');
+// Initialize Piper TTS
+async function initializePiper() {
+  if (piperInitialized) return;
+  try {
+    await piper.initialize();
+    piperInitialized = true;
+    console.log('Piper TTS initialized');
+  } catch (err) {
+    console.error('Failed to initialize Piper TTS:', err);
+  }
+}
+
+// Call on page load
+initializePiper();
+
+async function speakWord(word) {
+  if (!piperInitialized) {
+    await initializePiper();
+  }
+  
+  if (typeof piper !== 'undefined') {
+    try {
+      // Using a natural-sounding US English voice
+      const audio = await piper.textToSpeech(word, {
+        voice: 'en_US-lessac-medium',
+        speakerId: 0
+      });
+      
+      // Play the audio
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioContext.createBufferSource();
+      source.buffer = await audioContext.decodeAudioData(audio);
+      source.connect(audioContext.destination);
+      source.start(0);
+    } catch (err) {
+      console.error('Piper TTS error:', err);
+    }
   }
 }
 
