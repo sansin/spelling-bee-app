@@ -46,10 +46,9 @@ function getPrioritizedWords(grade) {
   }, {});
   return [...filteredWords].sort((a, b) => (wrongs[b.word] || 0) - (wrongs[a.word] || 0));
 }
-// ElevenLabs API configuration
-const ELEVENLABS_API_KEY = 'sk_8180b150e0883442bfc5d6b5199fbb5cc6f596b5c740cd77';
-const ELEVENLABS_VOICE_ID = '21m00Tcm4TlvDq8ikWAM'; // Rachel - natural US English female voice
-const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
+// Backend API URL (will be updated after deployment)
+const BACKEND_URL = 'http://localhost:3000'; // For local testing
+// Change to your Render backend URL after deployment
 
 let voices = [];
 
@@ -57,20 +56,14 @@ async function speakWord(word) {
   try {
     console.log('Speaking word:', word);
     
-    // Call ElevenLabs API with newer free-tier model
-    const response = await fetch(`${ELEVENLABS_API_URL}/${ELEVENLABS_VOICE_ID}`, {
+    // Call your backend proxy instead of ElevenLabs directly
+    const response = await fetch(`${BACKEND_URL}/api/speak`, {
       method: 'POST',
       headers: {
-        'xi-api-key': ELEVENLABS_API_KEY,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         text: word,
-        model_id: 'eleven_turbo_v2_5', // Updated to newer free-tier model
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-        },
       }),
     });
 
@@ -98,9 +91,9 @@ async function speakWord(word) {
     audio.onerror = (e) => console.error('✗ Audio playback error:', e);
     
     await audio.play();
-    console.log('ElevenLabs TTS played successfully');
+    console.log('TTS played successfully');
   } catch (error) {
-    console.error('ElevenLabs TTS error:', error);
+    console.error('TTS error:', error);
     alert('Voice playback failed: ' + error.message);
   }
 }
