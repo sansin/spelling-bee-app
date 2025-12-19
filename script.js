@@ -57,7 +57,7 @@ async function speakWord(word) {
   try {
     console.log('Speaking word:', word);
     
-    // Call ElevenLabs API
+    // Call ElevenLabs API with newer free-tier model
     const response = await fetch(`${ELEVENLABS_API_URL}/${ELEVENLABS_VOICE_ID}`, {
       method: 'POST',
       headers: {
@@ -66,7 +66,7 @@ async function speakWord(word) {
       },
       body: JSON.stringify({
         text: word,
-        model_id: 'eleven_monolingual_v1',
+        model_id: 'eleven_turbo_v2_5', // Updated to newer free-tier model
         voice_settings: {
           stability: 0.5,
           similarity_boost: 0.75,
@@ -74,25 +74,34 @@ async function speakWord(word) {
       }),
     });
 
+    console.log('API Response status:', response.status);
+    
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('API Error Response:', errorText);
+      throw new Error(`API error ${response.status}: ${errorText}`);
     }
 
     // Convert response to audio blob
     const audioBlob = await response.blob();
+    console.log('Audio blob received, size:', audioBlob.size);
+    
     const audioUrl = URL.createObjectURL(audioBlob);
     
     // Play the audio
     const audio = new Audio(audioUrl);
     audio.onplay = () => console.log('✓ Audio started');
-    audio.onended = () => console.log('✓ Audio ended');
-    audio.onerror = (e) => console.error('✗ Audio error:', e);
+    audio.onended = () => {
+      console.log('✓ Audio ended');
+      URL.revokeObjectURL(audioUrl);
+    };
+    audio.onerror = (e) => console.error('✗ Audio playback error:', e);
     
     await audio.play();
     console.log('ElevenLabs TTS played successfully');
   } catch (error) {
     console.error('ElevenLabs TTS error:', error);
-    alert('Voice playback failed. Please check your internet connection.');
+    alert('Voice playback failed: ' + error.message);
   }
 }
 
