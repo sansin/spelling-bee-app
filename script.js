@@ -49,21 +49,38 @@ function getPrioritizedWords(grade) {
 let voices = [];
 speechSynthesis.onvoiceschanged = () => {
   voices = speechSynthesis.getVoices();
-  console.log(voices.map(v => `${v.name} (${v.lang}, local: ${v.localService})`));
-  // Log available voices for debugging: console.log(voices);
 };
 
 function speakWord(word) {
-  const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=${encodeURIComponent(word)}`;
-  const audio = new Audio(ttsUrl);
-  audio.play().catch(err => {
-    console.error('TTS playback error:', err);
-    // Fallback to original browser TTS if needed
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(word);
-      speechSynthesis.speak(utterance);
+  if ('speechSynthesis' in window) {
+    const utterance = new SpeechSynthesisUtterance(word);
+    
+    // Select the best available natural voice
+    const preferredVoices = [
+      'Google UK English Female', // Chrome on macOS
+      'Samantha', // macOS native
+      'Victoria', // macOS alternative
+      'Google US English', // Chrome fallback
+    ];
+    
+    const availableVoices = speechSynthesis.getVoices();
+    const selectedVoice = availableVoices.find(v => 
+      preferredVoices.some(pv => v.name.includes(pv))
+    ) || availableVoices.find(v => v.lang.startsWith('en'));
+    
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
     }
-  });
+    
+    // Adjust speech parameters for natural sound
+    utterance.rate = 0.9; // Slightly slower (0.9 instead of 1)
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    
+    speechSynthesis.speak(utterance);
+  } else {
+    alert('Browser does not support text-to-speech.');
+  }
 }
 
 // Start test test
