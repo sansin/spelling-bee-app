@@ -65,7 +65,7 @@ function speakWord(word) {
   }
 }
 
-// Start test
+// Start test test
 startBtn.addEventListener('click', () => {
   const grade = gradeSelect.value;
   currentWords = getPrioritizedWords(grade);
@@ -73,6 +73,7 @@ startBtn.addEventListener('click', () => {
   sessionId = Date.now();
   startSession();
 });
+
 
 function startSession() {
   home.style.display = 'none';
