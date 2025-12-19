@@ -49,34 +49,41 @@ function getPrioritizedWords(grade) {
 let voices = [];
 let selectedVoice = null;
 
-speechSynthesis.onvoiceschanged = () => {
-  voices = speechSynthesis.getVoices();
-  // Select the best natural-sounding voice available
-  if (voices.length > 0 && !selectedVoice) {
-    // Try to find a high-quality voice
-    selectedVoice = voices.find(v => v.name.includes('Google')) ||
-                    voices.find(v => v.name.includes('Native')) ||
-                    voices.find(v => v.lang === 'en-US') ||
-                    voices[0];
-    console.log('Selected voice:', selectedVoice?.name);
-  }
-};
+// Initialize voices when they load
+if ('speechSynthesis' in window) {
+  speechSynthesis.onvoiceschanged = () => {
+    voices = speechSynthesis.getVoices();
+    console.log('Available voices:', voices.length);
+    voices.forEach((v, i) => console.log(i, v.name, v.lang));
+  };
+  
+  // Trigger voices to load
+  window.speechSynthesis.getVoices();
+}
 
-async function speakWord(word) {
+function speakWord(word) {
+  if (!('speechSynthesis' in window)) {
+    console.error('Speech Synthesis not supported');
+    return;
+  }
+  
+  console.log('Speaking word:', word);
   const utterance = new SpeechSynthesisUtterance(word);
   
-  // Use selected voice if available
-  if (selectedVoice) {
-    utterance.voice = selectedVoice;
-  }
-  
-  // Optimize for natural sound
-  utterance.rate = 0.85; // Slower, clearer speech
+  // Set speech parameters
+  utterance.rate = 0.8;
   utterance.pitch = 1.0;
   utterance.volume = 1.0;
   
-  speechSynthesis.cancel(); // Cancel any ongoing speech
-  speechSynthesis.speak(utterance);
+  // Add event listeners for debugging
+  utterance.onstart = () => console.log('✓ Speech started');
+  utterance.onend = () => console.log('✓ Speech ended');
+  utterance.onerror = (e) => console.error('✗ Speech error:', e.error);
+  
+  // Cancel previous speech and speak
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+  console.log('Speak command issued');
 }
 
 // Start test test
@@ -109,6 +116,7 @@ function nextWord() {
 
 // Listen button (TTS)
 listenBtn.addEventListener('click', () => {
+  console.log('Listen button clicked, speaking:', currentWord);
   speakWord(currentWord);
 });
 
