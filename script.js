@@ -47,6 +47,7 @@ function getPrioritizedWords(grade) {
   return [...filteredWords].sort((a, b) => (wrongs[b.word] || 0) - (wrongs[a.word] || 0));
 }
 // Web Speech API - Use browser's native voices (completely free)
+// Version: 2.0 - Web Speech API (no external APIs)
 let voices = [];
 let selectedVoice = null;
 
