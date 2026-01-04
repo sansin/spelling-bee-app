@@ -36,7 +36,6 @@ const test = document.getElementById('test');
 const trendsView = document.getElementById('trends-view');
 const gradeSelect = document.getElementById('grade');
 const startBtn = document.getElementById('start');
-const customBtn = document.getElementById('custom');
 const trendsBtn = document.getElementById('trends');
 const wordPrompt = document.getElementById('word-prompt');
 const listenBtn = document.getElementById('listen');
