@@ -50,7 +50,7 @@ const accuracyP = document.getElementById('accuracy');
 const commonMistakesP = document.getElementById('common-mistakes');
 const backHomeBtn = document.getElementById('back-home');
 const voiceSelect = document.getElementById('voice');
-const accuracyChart = document.getElementById('accuracy-chart').getContext('2d');
+// Note: accuracyChart context obtained when showTrends() is called
 
 // Data variables
 let words = [];
