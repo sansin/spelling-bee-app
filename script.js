@@ -1,6 +1,13 @@
-// Google Cloud Text-to-Speech API
-const GOOGLE_TTS_API_KEY = 'AQ.Ab8RN6KU9MRgt0oyAVj9BKLP-TdXNGj6qjyWrL7VP3sNWGwXuw';
-const GOOGLE_TTS_API_URL = 'https://texttospeech.googleapis.com/v1/text:synthesize';
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyASUhtq71S0vV0ckaQQMniW7AgQM0H08eA",
+  authDomain: "spelling-bee-app-c1e76.firebaseapp.com",
+  projectId: "spelling-bee-app-c1e76",
+  storageBucket: "spelling-bee-app-c1e76.firebasestorage.app",
+  messagingSenderId: "255014034100",
+  appId: "1:255014034100:web:ceb73dae25669a610f55e1",
+  measurementId: "G-L6E8HLFQ46"
+};
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
@@ -316,64 +323,24 @@ if ('speechSynthesis' in window) {
   speechSynthesis.getVoices();
 }
 
-async function speakWord(word) {
-  try {
-    console.log('Speaking word with Google TTS:', word);
-    
-    // Call Google Cloud Text-to-Speech API
-    const response = await fetch(`${GOOGLE_TTS_API_URL}?key=${GOOGLE_TTS_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        input: { text: word },
-        voice: {
-          languageCode: 'en-US',
-          name: 'en-US-Neural2-C', // Natural female voice
-          ssmlGender: 'FEMALE'
-        },
-        audioConfig: {
-          audioEncoding: 'MP3',
-          speakingRate: 0.9 // Slightly slower for clarity
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Google TTS API Error:', errorData);
-      throw new Error(`API error ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    if (!data.audioContent) {
-      throw new Error('No audio content in response');
-    }
-
-    // Decode base64 audio and play it
-    const audioContent = data.audioContent;
-    const audioBlob = new Blob([Uint8Array.from(atob(audioContent), c => c.charCodeAt(0))], { type: 'audio/mp3' });
-    const audioUrl = URL.createObjectURL(audioBlob);
-    
-    const audio = new Audio(audioUrl);
-    audio.onplay = () => console.log('✓ Audio started');
-    audio.onended = () => {
-      console.log('✓ Audio ended');
-      URL.revokeObjectURL(audioUrl);
-    };
-    audio.onerror = (e) => {
-      console.error('✗ Audio error:', e);
-    };
-    
-    await audio.play();
-    console.log('Google TTS played successfully');
-    
-  } catch (error) {
-    console.error('TTS error:', error);
-    alert('Voice playback failed: ' + error.message);
+function speakWord(word) {
+  // Use Web Speech API for natural voice synthesis
+  const utterance = new SpeechSynthesisUtterance(word);
+  utterance.rate = 0.9; // Slightly slower for clarity
+  utterance.pitch = 1;
+  utterance.volume = 1;
+  
+  // Try to find a natural female voice
+  const voices = speechSynthesis.getVoices();
+  const femaleVoice = voices.find(v => v.name.includes('Female') || v.name.includes('female')) || voices[0];
+  
+  if (femaleVoice) {
+    utterance.voice = femaleVoice;
+    console.log('Using voice:', femaleVoice.name);
   }
+  
+  speechSynthesis.cancel(); // Cancel any ongoing speech
+  speechSynthesis.speak(utterance);
 }
 
 // Start test test
