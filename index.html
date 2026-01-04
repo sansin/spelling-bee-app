@@ -45,10 +45,30 @@
     </div>
 
     <div id="trends-view" style="display: none;">
-        <h2>Your Trends</h2>
-        <p id="accuracy"></p>
-        <p id="common-mistakes"></p>
-        <canvas id="accuracy-chart" width="400" height="200"></canvas>
+        <h2>Your Trends & Analytics</h2>
+        <p id="accuracy" style="font-size: 18px; font-weight: bold;"></p>
+        <p id="session-stats" style="color: #666;"></p>
+        
+        <div style="margin-top: 30px;">
+            <h3>Session Accuracy Chart</h3>
+            <canvas id="accuracy-chart" width="400" height="200"></canvas>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <h3>Top 10 Most Incorrect Words</h3>
+            <div id="wrong-words" style="max-height: 300px; overflow-y: auto; background: #f9f9f9; padding: 10px; border-radius: 5px;"></div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <h3>Words Mastered (Correct)</h3>
+            <div id="correct-words" style="max-height: 300px; overflow-y: auto; background: #f0f9f0; padding: 10px; border-radius: 5px;"></div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <h3>Time Analytics</h3>
+            <p id="time-stats" style="color: #666;"></p>
+        </div>
+        
         <button id="back-home">Back to Home</button>
     </div>
 

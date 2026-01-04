@@ -60,6 +60,8 @@ let currentWords = [];
 let currentIndex = 0;
 let currentWord = '';
 let sessionId = Date.now();
+let wordStartTime = 0; // Track time for each word
+let sessionStartTime = Date.now(); // Track session start time
 
 // Check if user is already logged in
 window.addEventListener('DOMContentLoaded', async () => {
@@ -199,32 +201,75 @@ function getPrioritizedWords(grade) {
   // Filter words by grade
   filteredWords = words.filter(w => grade === 'all' || w.grade === grade);
   
-  // Count how many times each word was answered incorrectly
-  const wrongCount = {};
-  logs.forEach(log => {
-    if (!log.correct) {
-      wrongCount[log.word] = (wrongCount[log.word] || 0) + 1;
+  const now = Date.now();
+  const oneWeekAgo = now - (7 * 24 * 60 * 60 * 1000);
+  
+  // Calculate a priority score for each word
+  const wordScores = filteredWords.map(word => {
+    const wordLogs = logs.filter(l => l.word === word.word);
+    const wrongLogs = wordLogs.filter(l => !l.correct);
+    const correctLogs = wordLogs.filter(l => l.correct);
+    
+    // If word never attempted, high priority for coverage
+    if (wordLogs.length === 0) {
+      return { word, score: 100 }; // High priority for new words
     }
+    
+    // Calculate mistake frequency (0-50 points)
+    const mistakeFrequency = (wrongLogs.length / wordLogs.length) * 50;
+    
+    // Calculate recency of mistakes (0-30 points)
+    let mistakeRecency = 0;
+    if (wrongLogs.length > 0) {
+      const lastMistake = wrongLogs[wrongLogs.length - 1].timestamp;
+      const daysSinceMistake = (now - lastMistake) / (24 * 60 * 60 * 1000);
+      mistakeRecency = Math.max(0, 30 - (daysSinceMistake * 2)); // Recent mistakes worth more
+    }
+    
+    // Calculate success streak (words with recent correct answers get lower priority)
+    let successStreakPenalty = 0;
+    if (correctLogs.length > 0) {
+      const lastCorrect = correctLogs[correctLogs.length - 1].timestamp;
+      const lastWrong = wrongLogs.length > 0 ? wrongLogs[wrongLogs.length - 1].timestamp : 0;
+      
+      // If last attempt was correct and recent, lower the priority
+      if (lastCorrect > lastWrong) {
+        const daysSinceCorrect = (now - lastCorrect) / (24 * 60 * 60 * 1000);
+        if (daysSinceCorrect < 7) {
+          successStreakPenalty = 20; // Reduce score if recently correct
+        }
+      }
+    }
+    
+    // Calculate coverage bonus (words asked less frequently get higher priority)
+    const coverageBonus = Math.max(0, 20 - (wordLogs.length * 2));
+    
+    // Final score calculation
+    const totalScore = mistakeFrequency + mistakeRecency + coverageBonus - successStreakPenalty;
+    
+    return { 
+      word, 
+      score: Math.max(0, totalScore),
+      wrongCount: wrongLogs.length,
+      timesAsked: wordLogs.length
+    };
   });
   
-  // Separate words into categories: wrong (attempted and failed) and new (never attempted)
-  const wrongWords = filteredWords.filter(w => wrongCount[w.word] > 0);
-  const newWords = filteredWords.filter(w => !wrongCount[w.word]);
+  // Sort by score (highest first) with randomization for words with similar scores
+  wordScores.sort((a, b) => {
+    const scoreDiff = b.score - a.score;
+    // If scores are within 5 points, randomize to add variety
+    if (Math.abs(scoreDiff) < 5) {
+      return Math.random() - 0.5;
+    }
+    return scoreDiff;
+  });
   
-  // Sort wrong words by frequency of errors (most wrong first)
-  wrongWords.sort((a, b) => wrongCount[b.word] - wrongCount[a.word]);
+  console.log('Top 10 prioritized words:', wordScores.slice(0, 10).map(w => 
+    `${w.word.word}(score:${w.score.toFixed(1)},wrong:${w.wrongCount},asked:${w.timesAsked})`
+  ).join(', '));
   
-  // Shuffle the wrong words to add randomization within priority
-  const shuffledWrong = shuffleArray([...wrongWords]);
-  const shuffledNew = shuffleArray([...newWords]);
-  
-  // Combine: prioritize wrong words first, then add new words
-  // Mix is 60% wrong words, 40% new words for variety
-  const totalWrong = Math.ceil(filteredWords.length * 0.6);
-  const wrongWordsToUse = shuffledWrong.slice(0, totalWrong);
-  const newWordsToUse = shuffledNew.slice(0, filteredWords.length - wrongWordsToUse.length);
-  
-  return [...wrongWordsToUse, ...newWordsToUse];
+  return wordScores.map(ws => ws.word);
 }
 
 // Helper function to shuffle an array
@@ -341,6 +386,7 @@ function startSession() {
 function nextWord() {
   if (currentIndex >= currentWords.length) return endSession();
   currentWord = currentWords[currentIndex].word;
+  wordStartTime = Date.now(); // Track when this word starts
   wordPrompt.textContent = 'Guess the spelling';
   attemptInput.value = '';
   feedback.innerHTML = '';
@@ -360,6 +406,8 @@ listenBtn.addEventListener('click', () => {
 submitBtn.addEventListener('click', () => {
   const attempt = attemptInput.value.trim().toLowerCase();
   const correct = attempt === currentWord.toLowerCase();
+  const timeSpent = Date.now() - wordStartTime; // Time spent on this word
+  
   feedback.innerHTML = correct ? 'Correct! ✅🎉' : `Incorrect ❌ Correct: ${currentWord}`;
   test.classList.add(correct ? 'correct' : 'incorrect');
   
@@ -367,7 +415,8 @@ submitBtn.addEventListener('click', () => {
     word: currentWord, 
     attempt, 
     correct, 
-    timestamp: Date.now(), 
+    timestamp: Date.now(),
+    timeSpent, // Time in milliseconds
     sessionId,
     user: currentUser 
   };
@@ -432,30 +481,108 @@ function showTrends() {
   
   if (logs.length === 0) {
     accuracyP.textContent = 'No data yet. Start a test to see your trends!';
-    commonMistakesP.textContent = '';
+    document.getElementById('session-stats').textContent = '';
+    document.getElementById('wrong-words').innerHTML = '';
+    document.getElementById('correct-words').innerHTML = '';
+    document.getElementById('time-stats').textContent = '';
     return;
   }
   
+  // === ACCURACY STATS ===
   const total = logs.length;
   const correctCount = logs.filter(l => l.correct).length;
   const accuracy = ((correctCount / total) * 100).toFixed(2);
   accuracyP.textContent = `📊 ${currentUser}'s Overall Accuracy: ${accuracy}% (${correctCount}/${total} correct)`;
   
-  const mistakes = logs.filter(l => !l.correct).reduce((acc, l) => {
-    acc[l.word] = (acc[l.word] || 0) + 1;
-    return acc;
-  }, {});
-  const common = Object.entries(mistakes).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  commonMistakesP.textContent = 'Common Mistakes: ' + (common.length > 0 ? common.map(([word, count]) => `${word} (${count} times)`).join(', ') : 'None!');
-  
-  // Chart: Accuracy over sessions (group by sessionId)
+  // === SESSION STATS ===
   const sessions = [...new Set(logs.map(l => l.sessionId))];
+  const questionsPerSession = Math.round(total / sessions.length);
+  document.getElementById('session-stats').textContent = 
+    `📌 Total Sessions: ${sessions.length} | Questions per Session: ${questionsPerSession} | Total Questions: ${total}`;
+  
+  // === WRONG WORDS ANALYTICS ===
+  const wrongWordStats = {};
+  logs.forEach(log => {
+    if (!log.correct) {
+      if (!wrongWordStats[log.word]) {
+        wrongWordStats[log.word] = { wrong: 0, correct: 0, timesAsked: 0, totalTime: 0 };
+      }
+      wrongWordStats[log.word].wrong++;
+      wrongWordStats[log.word].totalTime += log.timeSpent || 0;
+      wrongWordStats[log.word].timesAsked++;
+    }
+  });
+  
+  // Also count correct attempts for success rate
+  logs.forEach(log => {
+    if (!wrongWordStats[log.word]) {
+      wrongWordStats[log.word] = { wrong: 0, correct: 0, timesAsked: 0, totalTime: 0 };
+    }
+    if (log.correct) {
+      wrongWordStats[log.word].correct++;
+    }
+    wrongWordStats[log.word].timesAsked++;
+    wrongWordStats[log.word].totalTime += log.timeSpent || 0;
+  });
+  
+  // Sort by wrong count and show top 10
+  const sortedWrongWords = Object.entries(wrongWordStats)
+    .sort((a, b) => b[1].wrong - a[1].wrong)
+    .slice(0, 10);
+  
+  const wrongWordsHtml = sortedWrongWords.map(([word, stats]) => {
+    const successRate = ((stats.correct / stats.timesAsked) * 100).toFixed(0);
+    const avgTime = Math.round(stats.totalTime / stats.timesAsked / 1000);
+    return `<p>
+      <strong>${word}</strong> - Wrong: ${stats.wrong}, Correct: ${stats.correct}, 
+      Success Rate: ${successRate}%, Avg Time: ${avgTime}s
+    </p>`;
+  }).join('');
+  
+  document.getElementById('wrong-words').innerHTML = wrongWordsHtml || '<p>No incorrect words yet!</p>';
+  
+  // === CORRECT WORDS ANALYTICS ===
+  const correctWordStats = {};
+  logs.forEach(log => {
+    if (log.correct) {
+      if (!correctWordStats[log.word]) {
+        correctWordStats[log.word] = { count: 0, totalTime: 0 };
+      }
+      correctWordStats[log.word].count++;
+      correctWordStats[log.word].totalTime += log.timeSpent || 0;
+    }
+  });
+  
+  const sortedCorrectWords = Object.entries(correctWordStats)
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 10);
+  
+  const correctWordsHtml = sortedCorrectWords.map(([word, stats]) => {
+    const avgTime = Math.round(stats.totalTime / stats.count / 1000);
+    return `<p>
+      <strong>${word}</strong> - Correct: ${stats.count} times, Avg Time: ${avgTime}s
+    </p>`;
+  }).join('');
+  
+  document.getElementById('correct-words').innerHTML = correctWordsHtml || '<p>No correct words yet!</p>';
+  
+  // === TIME ANALYTICS ===
+  const totalTimeMs = logs.reduce((sum, l) => sum + (l.timeSpent || 0), 0);
+  const avgTimePerWord = Math.round(totalTimeMs / total / 1000);
+  const fastestWord = logs.reduce((min, l) => l.timeSpent < (min.timeSpent || Infinity) ? l : min, {});
+  const slowestWord = logs.reduce((max, l) => l.timeSpent > (max.timeSpent || 0) ? l : max, {});
+  
+  document.getElementById('time-stats').textContent = 
+    `⏱️ Total Time: ${Math.round(totalTimeMs / 60000)} minutes | Average per Word: ${avgTimePerWord}s | ` +
+    `Fastest: ${fastestWord.word || 'N/A'} (${fastestWord.timeSpent ? Math.round(fastestWord.timeSpent / 1000) : 0}s) | ` +
+    `Slowest: ${slowestWord.word || 'N/A'} (${slowestWord.timeSpent ? Math.round(slowestWord.timeSpent / 1000) : 0}s)`;
+  
+  // === SESSION ACCURACY CHART ===
   const sessionAcc = sessions.map(sid => {
     const sLogs = logs.filter(l => l.sessionId === sid);
     return (sLogs.filter(l => l.correct).length / sLogs.length) * 100;
   });
   
-  // Destroy existing chart if it exists
   if (window.trendChart instanceof Chart) {
     window.trendChart.destroy();
   }
@@ -464,9 +591,25 @@ function showTrends() {
     type: 'line',
     data: {
       labels: sessions.map((_, i) => `Session ${i+1}`),
-      datasets: [{ label: 'Accuracy %', data: sessionAcc, borderColor: '#667eea', backgroundColor: 'rgba(102, 126, 234, 0.1)' }]
+      datasets: [{ 
+        label: 'Accuracy %', 
+        data: sessionAcc, 
+        borderColor: '#667eea', 
+        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+        tension: 0.4,
+        fill: true
+      }]
     },
-    options: { scales: { y: { beginAtZero: true, max: 100 } } }
+    options: { 
+      responsive: true,
+      scales: { 
+        y: { 
+          beginAtZero: true, 
+          max: 100,
+          title: { display: true, text: 'Accuracy %' }
+        } 
+      }
+    }
   });
 }
 
