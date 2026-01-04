@@ -13,6 +13,18 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
+// Wait for Firebase to be ready
+let firebaseReady = false;
+database.ref('.info/connected').on('value', (snap) => {
+  if (snap.val() === true) {
+    firebaseReady = true;
+    console.log('Firebase connected');
+  } else {
+    firebaseReady = false;
+    console.log('Firebase disconnected');
+  }
+});
+
 // Load elements
 const loginScreen = document.getElementById('login-screen');
 const usernameInput = document.getElementById('username-input');
@@ -50,11 +62,11 @@ let currentWord = '';
 let sessionId = Date.now();
 
 // Check if user is already logged in
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   const savedUser = localStorage.getItem('currentUser');
   if (savedUser) {
     currentUser = savedUser;
-    loadUserLogsFromFirebase();
+    await loadUserLogsFromFirebase();
     showHome();
   }
 });
@@ -69,15 +81,32 @@ fetch('data/words.json')
   .catch(err => console.error('Error loading words:', err));
 
 // Load user logs from Firebase
-function loadUserLogsFromFirebase() {
-  if (!currentUser) return;
+async function loadUserLogsFromFirebase() {
+  if (!currentUser) {
+    console.log('No user logged in');
+    return;
+  }
   
-  const userRef = database.ref(`users/${currentUser}/logs`);
-  userRef.on('value', (snapshot) => {
+  try {
+    const userRef = database.ref(`users/${currentUser}/logs`);
+    
+    // Load data once with promise
+    const snapshot = await userRef.once('value');
     const data = snapshot.val();
     logs = data ? Object.values(data) : [];
-    console.log(`Loaded ${logs.length} logs for ${currentUser}`);
-  });
+    console.log(`✓ Loaded ${logs.length} logs for ${currentUser}`);
+    
+    // Also set up real-time listener for future updates
+    userRef.off('value'); // Remove old listener if exists
+    userRef.on('value', (snap) => {
+      const newData = snap.val();
+      logs = newData ? Object.values(newData) : [];
+      console.log(`✓ Updated: ${logs.length} logs for ${currentUser}`);
+    });
+  } catch (error) {
+    console.error('Error loading Firebase logs:', error);
+    logs = [];
+  }
 }
 
 // Save user logs to Firebase
@@ -99,16 +128,25 @@ function saveUserLogsToFirebase(logEntry) {
 }
 
 // Login handler
-loginBtn.addEventListener('click', () => {
+loginBtn.addEventListener('click', async () => {
+  console.log('Login button clicked');
   const username = usernameInput.value.trim();
+  console.log('Username entered:', username);
+  
   if (!username) {
     alert('Please enter your name');
     return;
   }
   currentUser = username;
+  console.log('Current user set to:', currentUser);
   localStorage.setItem('currentUser', username);
-  loadUserLogsFromFirebase();
+  console.log('User saved to localStorage');
+  
+  await loadUserLogsFromFirebase();
+  console.log('Firebase logs loaded, showing home...');
+  
   showHome();
+  console.log('showHome() called');
 });
 
 // Allow Enter key to login
@@ -356,6 +394,8 @@ trendsBtn.addEventListener('click', showTrends);
 function showTrends() {
   home.style.display = 'none';
   trendsView.style.display = 'block';
+  
+  console.log('Showing trends. Current logs:', logs.length);
   
   if (logs.length === 0) {
     accuracyP.textContent = 'No data yet. Start a test to see your trends!';
