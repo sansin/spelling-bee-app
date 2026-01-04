@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#667eea">
     <title>Spelling Bee Practice App</title>
     <link rel="stylesheet" href="styles.css">
     <!-- Firebase SDK (Compat version for script tags) -->
@@ -11,69 +14,116 @@
 </head>
 <body>
     <!-- User Login Screen -->
-    <div id="login-screen" style="display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-        <div style="background: white; padding: 40px; border-radius: 10px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-            <h1>Spelling Bee Practice</h1>
-            <p style="font-size: 18px; margin-bottom: 30px; color: #666;">Welcome! Please enter your name to get started.</p>
-            <input id="username-input" type="text" placeholder="Enter your name" style="padding: 10px; font-size: 16px; width: 250px; border: 2px solid #667eea; border-radius: 5px; margin-bottom: 15px;">
-            <button id="login-btn" style="padding: 10px 30px; font-size: 16px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Start</button>
+    <div id="login-screen">
+        <div>
+            <h1>🐝 Spelling Bee</h1>
+            <p>Practice your spelling with instant feedback and detailed analytics</p>
+            <input id="username-input" type="text" placeholder="Enter your name" autocomplete="off">
+            <button id="login-btn">Start Practicing</button>
         </div>
     </div>
 
+    <!-- Home Screen -->
     <div id="home" style="display: none;">
-        <h1>Spelling Bee Practice</h1>
-        <p id="current-user" style="text-align: right; color: #666; margin-top: -10px; margin-bottom: 20px;"></p>
-        <label for="grade">Select Grade Level:</label>
-        <select id="grade">
-            <option value="all">All Grades</option>
-        </select>
-        <label for="voice" style="margin-left: 30px;">Select Voice:</label>
-        <select id="voice" style="margin-left: 10px;">
-            <option value="">Auto (Best Available)</option>
-        </select>
-        <button id="start">Start Test</button>
-        <button id="custom">Upload Custom Words</button>
-        <input type="file" id="upload" accept=".json,.csv" style="display: none;">
-        <button id="trends">View Trends</button>
-        <button id="logout-btn">Logout</button>
+        <div class="home-container">
+            <h1>🐝 Spelling Bee Practice</h1>
+            <p id="current-user"></p>
+            
+            <div class="controls-grid">
+                <div>
+                    <label for="grade">📚 Grade Level:</label>
+                    <select id="grade">
+                        <option value="all">All Grades</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="voice">🎙️ Voice:</label>
+                    <select id="voice">
+                        <option value="">Auto (Best Available)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button id="start">▶️ Start Test</button>
+                <button id="trends">📊 View Analytics</button>
+                <button id="logout-btn">🚪 Logout</button>
+            </div>
+        </div>
     </div>
 
+    <!-- Test Screen -->
     <div id="test" style="display: none;">
-        <h2 id="word-prompt">Guess the spelling</h2>
-        <button id="listen">Listen 🎤</button>
-        <input id="attempt" type="text" placeholder="Type the word here">
-        <button id="submit">Submit</button>
-        <button id="next" style="display: none;">Next</button>
-        <button id="end">End Session</button>
-        <div id="feedback"></div>
+        <div>
+            <h2 id="word-prompt">Spell the word</h2>
+            <button id="listen">🎤 Listen</button>
+            <input id="attempt" type="text" placeholder="Type the word here" autocomplete="off">
+            <button id="submit">✓ Submit</button>
+            <button id="next" style="display: none;">→ Next</button>
+            <button id="end">⏹ End Session</button>
+            <div id="feedback"></div>
+        </div>
     </div>
 
+    <!-- Trends/Analytics Screen -->
     <div id="trends-view" style="display: none;">
-        <h2>Your Trends & Analytics</h2>
-        <p id="accuracy" style="font-size: 18px; font-weight: bold;"></p>
-        <p id="session-stats" style="color: #666;"></p>
+        <h1>📊 Your Analytics</h1>
         
-        <div style="margin-top: 30px;">
-            <h3>Session Accuracy Chart</h3>
-            <canvas id="accuracy-chart" width="400" height="200"></canvas>
+        <div class="trend-card">
+            <h2>Overall Performance</h2>
+            <div class="stat-box">
+                <p>Accuracy Rate</p>
+                <div class="stat-number" id="accuracy">-</div>
+            </div>
+            <p id="session-stats" style="text-align: center; font-size: 1rem;"></p>
         </div>
-        
-        <div style="margin-top: 30px;">
-            <h3>Top 10 Most Incorrect Words</h3>
-            <div id="wrong-words" style="max-height: 300px; overflow-y: auto; background: #f9f9f9; padding: 10px; border-radius: 5px;"></div>
+
+        <div class="trend-card">
+            <h3>Session Accuracy Trend</h3>
+            <div class="chart-container">
+                <canvas id="accuracy-chart"></canvas>
+            </div>
         </div>
-        
-        <div style="margin-top: 30px;">
-            <h3>Words Mastered (Correct)</h3>
-            <div id="correct-words" style="max-height: 300px; overflow-y: auto; background: #f0f9f0; padding: 10px; border-radius: 5px;"></div>
+
+        <div class="trend-card">
+            <h3>Correct vs Incorrect</h3>
+            <div class="chart-container">
+                <canvas id="correct-incorrect-chart"></canvas>
+            </div>
         </div>
-        
-        <div style="margin-top: 30px;">
-            <h3>Time Analytics</h3>
-            <p id="time-stats" style="color: #666;"></p>
+
+        <div class="trend-card">
+            <h3>Performance by Grade</h3>
+            <div class="chart-container">
+                <canvas id="grade-performance-chart"></canvas>
+            </div>
         </div>
-        
-        <button id="back-home">Back to Home</button>
+
+        <div class="trend-card">
+            <h3>Word Difficulty Distribution</h3>
+            <div class="chart-container">
+                <canvas id="difficulty-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="trend-card">
+            <h3>⏱️ Time Analytics</h3>
+            <p id="time-stats" style="text-align: center;"></p>
+        </div>
+
+        <div class="trend-card">
+            <h3>❌ Top 10 Most Incorrect Words</h3>
+            <div class="word-list" id="wrong-words"></div>
+        </div>
+
+        <div class="trend-card">
+            <h3>✅ Words Mastered</h3>
+            <div class="word-list" id="correct-words"></div>
+        </div>
+
+        <div class="button-group">
+            <button id="back-home">← Back to Home</button>
+        </div>
     </div>
 
     <!-- Chart.js for trends visualization -->

@@ -513,13 +513,13 @@ function showTrends() {
   const total = logs.length;
   const correctCount = logs.filter(l => l.correct).length;
   const accuracy = ((correctCount / total) * 100).toFixed(2);
-  accuracyP.textContent = `📊 ${currentUser}'s Overall Accuracy: ${accuracy}% (${correctCount}/${total} correct)`;
+  accuracyP.textContent = `${accuracy}% (${correctCount}/${total} correct)`;
   
   // === SESSION STATS ===
   const sessions = [...new Set(logs.map(l => l.sessionId))];
   const questionsPerSession = Math.round(total / sessions.length);
   document.getElementById('session-stats').textContent = 
-    `📌 Total Sessions: ${sessions.length} | Questions per Session: ${questionsPerSession} | Total Questions: ${total}`;
+    `Total Sessions: ${sessions.length} | Questions per Session: ${questionsPerSession} | Total Questions: ${total}`;
   
   // === WRONG WORDS ANALYTICS ===
   const wrongWordStats = {};
@@ -553,14 +553,13 @@ function showTrends() {
   
   const wrongWordsHtml = sortedWrongWords.map(([word, stats]) => {
     const successRate = ((stats.correct / stats.timesAsked) * 100).toFixed(0);
-    const avgTime = Math.round(stats.totalTime / stats.timesAsked / 1000);
-    return `<p>
-      <strong>${word}</strong> - Wrong: ${stats.wrong}, Correct: ${stats.correct}, 
-      Success Rate: ${successRate}%, Avg Time: ${avgTime}s
-    </p>`;
+    return `<div class="word-item">
+      <div><strong>${word}</strong></div>
+      <div class="word-stat">${stats.correct}/${stats.timesAsked} correct (${successRate}%)</div>
+    </div>`;
   }).join('');
   
-  document.getElementById('wrong-words').innerHTML = wrongWordsHtml || '<p>No incorrect words yet!</p>';
+  document.getElementById('wrong-words').innerHTML = wrongWordsHtml || '<p style="padding: 1rem;">No incorrect words yet!</p>';
   
   // === CORRECT WORDS ANALYTICS ===
   const correctWordStats = {};
@@ -579,13 +578,13 @@ function showTrends() {
     .slice(0, 10);
   
   const correctWordsHtml = sortedCorrectWords.map(([word, stats]) => {
-    const avgTime = Math.round(stats.totalTime / stats.count / 1000);
-    return `<p>
-      <strong>${word}</strong> - Correct: ${stats.count} times, Avg Time: ${avgTime}s
-    </p>`;
+    return `<div class="word-item">
+      <div><strong>${word}</strong></div>
+      <div class="word-stat">${stats.count} times correct</div>
+    </div>`;
   }).join('');
   
-  document.getElementById('correct-words').innerHTML = correctWordsHtml || '<p>No correct words yet!</p>';
+  document.getElementById('correct-words').innerHTML = correctWordsHtml || '<p style="padding: 1rem;">No correct words yet!</p>';
   
   // === TIME ANALYTICS ===
   const totalTimeMs = logs.reduce((sum, l) => sum + (l.timeSpent || 0), 0);
@@ -594,7 +593,7 @@ function showTrends() {
   const slowestWord = logs.reduce((max, l) => l.timeSpent > (max.timeSpent || 0) ? l : max, {});
   
   document.getElementById('time-stats').textContent = 
-    `⏱️ Total Time: ${Math.round(totalTimeMs / 60000)} minutes | Average per Word: ${avgTimePerWord}s | ` +
+    `Total Time: ${Math.round(totalTimeMs / 60000)}m | Average: ${avgTimePerWord}s/word | ` +
     `Fastest: ${fastestWord.word || 'N/A'} (${fastestWord.timeSpent ? Math.round(fastestWord.timeSpent / 1000) : 0}s) | ` +
     `Slowest: ${slowestWord.word || 'N/A'} (${slowestWord.timeSpent ? Math.round(slowestWord.timeSpent / 1000) : 0}s)`;
   
@@ -608,7 +607,8 @@ function showTrends() {
     window.trendChart.destroy();
   }
   
-  window.trendChart = new Chart(accuracyChart, {
+  const accuracyCtx = document.getElementById('accuracy-chart').getContext('2d');
+  window.trendChart = new Chart(accuracyCtx, {
     type: 'line',
     data: {
       labels: sessions.map((_, i) => `Session ${i+1}`),
@@ -618,17 +618,132 @@ function showTrends() {
         borderColor: '#667eea', 
         backgroundColor: 'rgba(102, 126, 234, 0.1)',
         tension: 0.4,
-        fill: true
+        fill: true,
+        borderWidth: 2,
+        pointRadius: 5,
+        pointBackgroundColor: '#667eea'
       }]
     },
     options: { 
       responsive: true,
+      maintainAspectRatio: false,
       scales: { 
         y: { 
           beginAtZero: true, 
           max: 100,
-          title: { display: true, text: 'Accuracy %' }
+          ticks: { callback: v => v + '%' }
         } 
+      },
+      plugins: {
+        legend: { display: true }
+      }
+    }
+  });
+  
+  // === CORRECT vs INCORRECT CHART ===
+  if (window.correctIncorrectChart instanceof Chart) {
+    window.correctIncorrectChart.destroy();
+  }
+  
+  const correctIncorrectCtx = document.getElementById('correct-incorrect-chart').getContext('2d');
+  window.correctIncorrectChart = new Chart(correctIncorrectCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Correct', 'Incorrect'],
+      datasets: [{
+        data: [correctCount, total - correctCount],
+        backgroundColor: ['#10b981', '#ef4444'],
+        borderColor: ['#059669', '#dc2626'],
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' }
+      }
+    }
+  });
+  
+  // === GRADE PERFORMANCE CHART ===
+  if (window.gradePerformanceChart instanceof Chart) {
+    window.gradePerformanceChart.destroy();
+  }
+  
+  const gradeStats = {};
+  logs.forEach(log => {
+    const word = words.find(w => w.word === log.word);
+    const grade = word ? word.grade : 'Unknown';
+    if (!gradeStats[grade]) {
+      gradeStats[grade] = { correct: 0, total: 0 };
+    }
+    gradeStats[grade].total++;
+    if (log.correct) gradeStats[grade].correct++;
+  });
+  
+  const gradeLabels = Object.keys(gradeStats);
+  const gradeAccuracy = gradeLabels.map(g => ((gradeStats[g].correct / gradeStats[g].total) * 100).toFixed(1));
+  
+  const gradePerformanceCtx = document.getElementById('grade-performance-chart').getContext('2d');
+  window.gradePerformanceChart = new Chart(gradePerformanceCtx, {
+    type: 'bar',
+    data: {
+      labels: gradeLabels,
+      datasets: [{
+        label: 'Accuracy %',
+        data: gradeAccuracy,
+        backgroundColor: ['#667eea', '#764ba2', '#10b981'],
+        borderColor: ['#5568d3', '#6b3a8f', '#059669'],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { beginAtZero: true, max: 100 }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+  
+  // === WORD DIFFICULTY DISTRIBUTION CHART ===
+  if (window.difficultyChart instanceof Chart) {
+    window.difficultyChart.destroy();
+  }
+  
+  const difficultyDistribution = {};
+  logs.forEach(log => {
+    const word = words.find(w => w.word === log.word);
+    const grade = word ? word.grade : 'Unknown';
+    difficultyDistribution[grade] = (difficultyDistribution[grade] || 0) + 1;
+  });
+  
+  const diffLabels = Object.keys(difficultyDistribution);
+  const diffValues = Object.values(difficultyDistribution);
+  const colors = ['#667eea', '#764ba2', '#10b981', '#f59e0b', '#ef4444'];
+  
+  const difficultyCtx = document.getElementById('difficulty-chart').getContext('2d');
+  window.difficultyChart = new Chart(difficultyCtx, {
+    type: 'pie',
+    data: {
+      labels: diffLabels,
+      datasets: [{
+        data: diffValues,
+        backgroundColor: colors.slice(0, diffLabels.length),
+        borderColor: 'white',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' }
       }
     }
   });
@@ -638,5 +753,4 @@ function showTrends() {
 backHomeBtn.addEventListener('click', () => {
   trendsView.style.display = 'none';
   home.style.display = 'block';
-  // Reset chart if needed
 });
