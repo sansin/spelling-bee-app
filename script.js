@@ -196,12 +196,45 @@ function populateGradeDropdown() {
 
 // Function to get prioritized words (wrongs first, then random)
 function getPrioritizedWords(grade) {
+  // Filter words by grade
   filteredWords = words.filter(w => grade === 'all' || w.grade === grade);
-  const wrongs = logs.filter(l => !l.correct).reduce((acc, l) => {
-    acc[l.word] = (acc[l.word] || 0) + 1;
-    return acc;
-  }, {});
-  return [...filteredWords].sort((a, b) => (wrongs[b.word] || 0) - (wrongs[a.word] || 0));
+  
+  // Count how many times each word was answered incorrectly
+  const wrongCount = {};
+  logs.forEach(log => {
+    if (!log.correct) {
+      wrongCount[log.word] = (wrongCount[log.word] || 0) + 1;
+    }
+  });
+  
+  // Separate words into categories: wrong (attempted and failed) and new (never attempted)
+  const wrongWords = filteredWords.filter(w => wrongCount[w.word] > 0);
+  const newWords = filteredWords.filter(w => !wrongCount[w.word]);
+  
+  // Sort wrong words by frequency of errors (most wrong first)
+  wrongWords.sort((a, b) => wrongCount[b.word] - wrongCount[a.word]);
+  
+  // Shuffle the wrong words to add randomization within priority
+  const shuffledWrong = shuffleArray([...wrongWords]);
+  const shuffledNew = shuffleArray([...newWords]);
+  
+  // Combine: prioritize wrong words first, then add new words
+  // Mix is 60% wrong words, 40% new words for variety
+  const totalWrong = Math.ceil(filteredWords.length * 0.6);
+  const wrongWordsToUse = shuffledWrong.slice(0, totalWrong);
+  const newWordsToUse = shuffledNew.slice(0, filteredWords.length - wrongWordsToUse.length);
+  
+  return [...wrongWordsToUse, ...newWordsToUse];
+}
+
+// Helper function to shuffle an array
+function shuffleArray(array) {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
 }
 // Web Speech API - Use browser's native voices (completely free)
 // Version: 2.0 - Web Speech API (no external APIs)
