@@ -37,7 +37,6 @@ const trendsView = document.getElementById('trends-view');
 const gradeSelect = document.getElementById('grade');
 const startBtn = document.getElementById('start');
 const customBtn = document.getElementById('custom');
-const uploadInput = document.getElementById('upload');
 const trendsBtn = document.getElementById('trends');
 const wordPrompt = document.getElementById('word-prompt');
 const listenBtn = document.getElementById('listen');
@@ -47,7 +46,6 @@ const nextBtn = document.getElementById('next');
 const endBtn = document.getElementById('end');
 const feedback = document.getElementById('feedback');
 const accuracyP = document.getElementById('accuracy');
-const commonMistakesP = document.getElementById('common-mistakes');
 const backHomeBtn = document.getElementById('back-home');
 const voiceSelect = document.getElementById('voice');
 // Note: accuracyChart context obtained when showTrends() is called
@@ -462,6 +460,9 @@ function endSession() {
 }
 
 // Custom upload
+// Custom upload feature removed from current UI
+// Code preserved below for future use:
+/*
 customBtn.addEventListener('click', () => uploadInput.click());
 uploadInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
@@ -490,6 +491,7 @@ uploadInput.addEventListener('change', (e) => {
   };
   reader.readAsText(file);
 });
+*/
 
 // View trends
 trendsBtn.addEventListener('click', showTrends);
