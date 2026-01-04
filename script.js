@@ -1,13 +1,6 @@
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyASUhtq71S0vV0ckaQQMniW7AgQM0H08eA",
-  authDomain: "spelling-bee-app-c1e76.firebaseapp.com",
-  projectId: "spelling-bee-app-c1e76",
-  storageBucket: "spelling-bee-app-c1e76.firebasestorage.app",
-  messagingSenderId: "255014034100",
-  appId: "1:255014034100:web:ceb73dae25669a610f55e1",
-  measurementId: "G-L6E8HLFQ46"
-};
+// Google Cloud Text-to-Speech API
+const GOOGLE_TTS_API_KEY = 'AQ.Ab8RN6KU9MRgt0oyAVj9BKLP-TdXNGj6qjyWrL7VP3sNWGwXuw';
+const GOOGLE_TTS_API_URL = 'https://texttospeech.googleapis.com/v1/text:synthesize';
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
@@ -324,47 +317,64 @@ if ('speechSynthesis' in window) {
 }
 
 async function speakWord(word) {
-  if (!('speechSynthesis' in window)) {
-    alert('Speech synthesis not supported in this browser');
-    return;
-  }
-  
   try {
-    console.log('Speaking word:', word);
+    console.log('Speaking word with Google TTS:', word);
     
-    const utterance = new SpeechSynthesisUtterance(word);
-    
-    // Use selected voice if available
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
+    // Call Google Cloud Text-to-Speech API
+    const response = await fetch(`${GOOGLE_TTS_API_URL}?key=${GOOGLE_TTS_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        input: { text: word },
+        voice: {
+          languageCode: 'en-US',
+          name: 'en-US-Neural2-C', // Natural female voice
+          ssmlGender: 'FEMALE'
+        },
+        audioConfig: {
+          audioEncoding: 'MP3',
+          speakingRate: 0.9 // Slightly slower for clarity
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Google TTS API Error:', errorData);
+      throw new Error(`API error ${response.status}`);
     }
+
+    const data = await response.json();
     
-    // Optimize for natural, clear speech
-    utterance.rate = 0.85;    // Slightly slower - easier to understand
-    utterance.pitch = 1.0;    // Normal pitch
-    utterance.volume = 1.0;   // Full volume
+    if (!data.audioContent) {
+      throw new Error('No audio content in response');
+    }
+
+    // Decode base64 audio and play it
+    const audioContent = data.audioContent;
+    const audioBlob = new Blob([Uint8Array.from(atob(audioContent), c => c.charCodeAt(0))], { type: 'audio/mp3' });
+    const audioUrl = URL.createObjectURL(audioBlob);
     
-    // Event handlers for debugging
-    utterance.onstart = () => {
-      console.log('✓ Speech started');
+    const audio = new Audio(audioUrl);
+    audio.onplay = () => console.log('✓ Audio started');
+    audio.onended = () => {
+      console.log('✓ Audio ended');
+      URL.revokeObjectURL(audioUrl);
+    };
+    audio.onerror = (e) => {
+      console.error('✗ Audio error:', e);
     };
     
-    utterance.onend = () => {
-      console.log('✓ Speech ended');
-    };
-    
-    utterance.onerror = (e) => {
-      console.error('✗ Speech error:', e.error);
-    };
-    
-    // Cancel any previous speech and speak
-    speechSynthesis.cancel();
-    speechSynthesis.speak(utterance);
+    await audio.play();
+    console.log('Google TTS played successfully');
     
   } catch (error) {
     console.error('TTS error:', error);
     alert('Voice playback failed: ' + error.message);
   }
+}
 }
 
 // Start test test
