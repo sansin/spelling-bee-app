@@ -49,6 +49,7 @@ const feedback = document.getElementById('feedback');
 const accuracyP = document.getElementById('accuracy');
 const commonMistakesP = document.getElementById('common-mistakes');
 const backHomeBtn = document.getElementById('back-home');
+const voiceSelect = document.getElementById('voice');
 const accuracyChart = document.getElementById('accuracy-chart').getContext('2d');
 
 // Data variables
@@ -81,6 +82,33 @@ fetch('data/words.json')
     populateGradeDropdown();
   })
   .catch(err => console.error('Error loading words:', err));
+
+// Populate voices when page loads and when voices are ready
+window.addEventListener('load', () => {
+  populateVoices();
+});
+speechSynthesis.onvoiceschanged = populateVoices;
+
+// Populate voice selector dropdown
+function populateVoices() {
+  const voices = speechSynthesis.getVoices();
+  const usVoices = voices.filter(v => v.lang && (v.lang === 'en-US' || v.lang.startsWith('en-US')));
+  
+  console.log('Available US English voices:', usVoices.map(v => ({ name: v.name, lang: v.lang })));
+  
+  // Clear existing options (except first)
+  while (voiceSelect.options.length > 1) {
+    voiceSelect.remove(1);
+  }
+  
+  // Add voice options
+  usVoices.forEach((voice, index) => {
+    const option = document.createElement('option');
+    option.value = index;
+    option.textContent = voice.name;
+    voiceSelect.appendChild(option);
+  });
+}
 
 // Load user logs from Firebase
 async function loadUserLogsFromFirebase() {
@@ -330,20 +358,30 @@ function speakWord(word) {
   utterance.pitch = 1;
   utterance.volume = 1;
 
-  // Prefer US English female voice
   const voices = speechSynthesis.getVoices();
-  // Try to find a US English female voice
-  let usVoice = voices.find(v => v.lang === 'en-US' && v.name.toLowerCase().includes('female'));
-  // Fallback: any US English voice
-  if (!usVoice) usVoice = voices.find(v => v.lang === 'en-US');
-  // Fallback: any English voice
-  if (!usVoice) usVoice = voices.find(v => v.lang && v.lang.startsWith('en'));
-  // Fallback: first available
-  if (!usVoice) usVoice = voices[0];
+  let selectedVoice = null;
 
-  if (usVoice) {
-    utterance.voice = usVoice;
-    console.log('Using voice:', usVoice.name, usVoice.lang);
+  // Use user-selected voice if available
+  if (voiceSelect.value && voiceSelect.value !== '') {
+    const usVoices = voices.filter(v => v.lang && (v.lang === 'en-US' || v.lang.startsWith('en-US')));
+    selectedVoice = usVoices[parseInt(voiceSelect.value)];
+  }
+
+  // Fallback: auto-select best available voice
+  if (!selectedVoice) {
+    // Try to find a US English female voice
+    selectedVoice = voices.find(v => v.lang && v.lang === 'en-US' && v.name.toLowerCase().includes('female'));
+    // Fallback: any US English voice
+    if (!selectedVoice) selectedVoice = voices.find(v => v.lang && v.lang === 'en-US');
+    // Fallback: any English voice
+    if (!selectedVoice) selectedVoice = voices.find(v => v.lang && v.lang.startsWith('en'));
+    // Fallback: first available
+    if (!selectedVoice) selectedVoice = voices[0];
+  }
+
+  if (selectedVoice) {
+    utterance.voice = selectedVoice;
+    console.log('Using voice:', selectedVoice.name, selectedVoice.lang);
   }
 
   speechSynthesis.cancel(); // Cancel any ongoing speech
