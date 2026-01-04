@@ -375,7 +375,6 @@ async function speakWord(word) {
     alert('Voice playback failed: ' + error.message);
   }
 }
-}
 
 // Start test test
 startBtn.addEventListener('click', () => {
