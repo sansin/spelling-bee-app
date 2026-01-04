@@ -513,14 +513,24 @@ function showTrends() {
   // === ACCURACY STATS ===
   const total = logs.length;
   const correctCount = logs.filter(l => l.correct).length;
+  const incorrectCount = total - correctCount;
   const accuracy = ((correctCount / total) * 100).toFixed(2);
-  accuracyP.textContent = `${accuracy}% (${correctCount}/${total} correct)`;
+  accuracyP.textContent = `${accuracy}%`;
+  
+  // === POPULATE KPI CARDS ===
+  document.getElementById('kpi-total').textContent = total;
+  document.getElementById('kpi-correct').textContent = correctCount;
+  document.getElementById('kpi-incorrect').textContent = incorrectCount;
   
   // === SESSION STATS ===
   const sessions = [...new Set(logs.map(l => l.sessionId))];
   const questionsPerSession = Math.round(total / sessions.length);
-  document.getElementById('session-stats').textContent = 
-    `Total Sessions: ${sessions.length} | Questions per Session: ${questionsPerSession} | Total Questions: ${total}`;
+  document.getElementById('kpi-sessions').textContent = sessions.length;
+  
+  // === TIME ANALYTICS (moved up to populate KPI) ===
+  const totalTimeMs = logs.reduce((sum, l) => sum + (l.timeSpent || 0), 0);
+  const avgTimePerWord = Math.round(totalTimeMs / total / 1000);
+  document.getElementById('kpi-avgtime').textContent = avgTimePerWord + 's';
   
   // === WRONG WORDS ANALYTICS ===
   const wrongWordStats = {};
@@ -588,15 +598,14 @@ function showTrends() {
   document.getElementById('correct-words').innerHTML = correctWordsHtml || '<p style="padding: 1rem;">No correct words yet!</p>';
   
   // === TIME ANALYTICS ===
-  const totalTimeMs = logs.reduce((sum, l) => sum + (l.timeSpent || 0), 0);
-  const avgTimePerWord = Math.round(totalTimeMs / total / 1000);
   const fastestWord = logs.reduce((min, l) => l.timeSpent < (min.timeSpent || Infinity) ? l : min, {});
   const slowestWord = logs.reduce((max, l) => l.timeSpent > (max.timeSpent || 0) ? l : max, {});
   
   document.getElementById('time-stats').textContent = 
-    `Total Time: ${Math.round(totalTimeMs / 60000)}m | Average: ${avgTimePerWord}s/word | ` +
-    `Fastest: ${fastestWord.word || 'N/A'} (${fastestWord.timeSpent ? Math.round(fastestWord.timeSpent / 1000) : 0}s) | ` +
-    `Slowest: ${slowestWord.word || 'N/A'} (${slowestWord.timeSpent ? Math.round(slowestWord.timeSpent / 1000) : 0}s)`;
+    `<strong>Total Time:</strong> ${Math.round(totalTimeMs / 60000)}m<br>` +
+    `<strong>Average/Word:</strong> ${avgTimePerWord}s<br>` +
+    `<strong>Fastest:</strong> ${fastestWord.word || 'N/A'} (${fastestWord.timeSpent ? Math.round(fastestWord.timeSpent / 1000) : 0}s)<br>` +
+    `<strong>Slowest:</strong> ${slowestWord.word || 'N/A'} (${slowestWord.timeSpent ? Math.round(slowestWord.timeSpent / 1000) : 0}s)`;
   
   // === SESSION ACCURACY CHART ===
   const sessionAcc = sessions.map(sid => {

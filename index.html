@@ -69,56 +69,81 @@
     <div id="trends-view" style="display: none;">
         <h1>📊 Your Analytics</h1>
         
-        <div class="trend-card">
-            <h2>Overall Performance</h2>
-            <div class="stat-box">
-                <p>Accuracy Rate</p>
-                <div class="stat-number" id="accuracy">-</div>
+        <!-- KPI Dashboard -->
+        <div class="kpi-dashboard">
+            <div class="kpi-card">
+                <div class="kpi-label">Accuracy Rate</div>
+                <div class="kpi-value" id="accuracy">-</div>
             </div>
-            <p id="session-stats" style="text-align: center; font-size: 1rem;"></p>
-        </div>
-
-        <div class="trend-card">
-            <h3>Session Accuracy Trend</h3>
-            <div class="chart-container">
-                <canvas id="accuracy-chart"></canvas>
+            <div class="kpi-card">
+                <div class="kpi-label">Total Questions</div>
+                <div class="kpi-value" id="kpi-total">0</div>
             </div>
-        </div>
-
-        <div class="trend-card">
-            <h3>Correct vs Incorrect</h3>
-            <div class="chart-container">
-                <canvas id="correct-incorrect-chart"></canvas>
+            <div class="kpi-card">
+                <div class="kpi-label">Correct</div>
+                <div class="kpi-value kpi-success" id="kpi-correct">0</div>
             </div>
-        </div>
-
-        <div class="trend-card">
-            <h3>Performance by Grade</h3>
-            <div class="chart-container">
-                <canvas id="grade-performance-chart"></canvas>
+            <div class="kpi-card">
+                <div class="kpi-label">Incorrect</div>
+                <div class="kpi-value kpi-danger" id="kpi-incorrect">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Sessions</div>
+                <div class="kpi-value" id="kpi-sessions">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Avg Time/Word</div>
+                <div class="kpi-value" id="kpi-avgtime">0s</div>
             </div>
         </div>
 
-        <div class="trend-card">
-            <h3>Word Difficulty Distribution</h3>
-            <div class="chart-container">
-                <canvas id="difficulty-chart"></canvas>
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>Session Accuracy Trend</h3>
+                <div class="chart-container">
+                    <canvas id="accuracy-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h3>Correct vs Incorrect</h3>
+                <div class="chart-container small">
+                    <canvas id="correct-incorrect-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h3>Performance by Grade</h3>
+                <div class="chart-container">
+                    <canvas id="grade-performance-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h3>Word Difficulty</h3>
+                <div class="chart-container small">
+                    <canvas id="difficulty-chart"></canvas>
+                </div>
             </div>
         </div>
 
-        <div class="trend-card">
-            <h3>⏱️ Time Analytics</h3>
-            <p id="time-stats" style="text-align: center;"></p>
-        </div>
+        <!-- Data Tables -->
+        <div class="data-grid">
+            <div class="data-card">
+                <h3>❌ Top 10 Challenging Words</h3>
+                <div class="word-list" id="wrong-words"></div>
+            </div>
 
-        <div class="trend-card">
-            <h3>❌ Top 10 Most Incorrect Words</h3>
-            <div class="word-list" id="wrong-words"></div>
-        </div>
+            <div class="data-card">
+                <h3>✅ Words Mastered</h3>
+                <div class="word-list" id="correct-words"></div>
+            </div>
 
-        <div class="trend-card">
-            <h3>✅ Words Mastered</h3>
-            <div class="word-list" id="correct-words"></div>
+            <div class="data-card">
+                <h3>⏱️ Time Analytics</h3>
+                <p id="time-stats" style="text-align: center; line-height: 1.8;"></p>
+            </div>
         </div>
 
         <div class="button-group">
