@@ -7,19 +7,28 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="home">
+    <!-- User Login Screen -->
+    <div id="login-screen" style="display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div style="background: white; padding: 40px; border-radius: 10px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <h1>Spelling Bee Practice</h1>
+            <p style="font-size: 18px; margin-bottom: 30px; color: #666;">Welcome! Please enter your name to get started.</p>
+            <input id="username-input" type="text" placeholder="Enter your name" style="padding: 10px; font-size: 16px; width: 250px; border: 2px solid #667eea; border-radius: 5px; margin-bottom: 15px;">
+            <button id="login-btn" style="padding: 10px 30px; font-size: 16px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Start</button>
+        </div>
+    </div>
+
+    <div id="home" style="display: none;">
         <h1>Spelling Bee Practice</h1>
+        <p id="current-user" style="text-align: right; color: #666; margin-top: -10px; margin-bottom: 20px;"></p>
         <label for="grade">Select Grade Level:</label>
         <select id="grade">
             <option value="all">All Grades</option>
-            <option value="1-3">Grades 1-3</option>
-            <option value="4-6">Grades 4-6</option>
-            <!-- Add more options as needed based on your words.json -->
         </select>
         <button id="start">Start Test</button>
         <button id="custom">Upload Custom Words</button>
         <input type="file" id="upload" accept=".json,.csv" style="display: none;">
         <button id="trends">View Trends</button>
+        <button id="logout-btn">Logout</button>
     </div>
 
     <div id="test" style="display: none;">

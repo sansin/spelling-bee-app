@@ -1,4 +1,9 @@
 // Load elements
+const loginScreen = document.getElementById('login-screen');
+const usernameInput = document.getElementById('username-input');
+const loginBtn = document.getElementById('login-btn');
+const currentUserDisplay = document.getElementById('current-user');
+const logoutBtn = document.getElementById('logout-btn');
 const home = document.getElementById('home');
 const test = document.getElementById('test');
 const trendsView = document.getElementById('trends-view');
@@ -22,20 +27,100 @@ const accuracyChart = document.getElementById('accuracy-chart').getContext('2d')
 // Data variables
 let words = [];
 let filteredWords = [];
-let logs = JSON.parse(localStorage.getItem('spellingLogs') || '[]');
+let currentUser = null; // Track current logged-in user
+let logs = []; // Will be loaded from localStorage for the user
 let currentWords = [];
 let currentIndex = 0;
 let currentWord = '';
 let sessionId = Date.now(); // Unique per session
+
+// Check if user is already logged in
+window.addEventListener('DOMContentLoaded', () => {
+  const savedUser = localStorage.getItem('currentUser');
+  if (savedUser) {
+    currentUser = savedUser;
+    showHome();
+  }
+});
 
 // Load words from JSON
 fetch('data/words.json')
   .then(res => res.json())
   .then(data => {
     words = data;
-    // Populate grade options uniquely if needed (optional)
+    populateGradeDropdown();
   })
   .catch(err => console.error('Error loading words:', err));
+
+// Get user-specific logs from localStorage
+function getUserLogs(username) {
+  const storageKey = `spellingLogs_${username}`;
+  return JSON.parse(localStorage.getItem(storageKey) || '[]');
+}
+
+// Save user-specific logs to localStorage
+function saveUserLogs(username, logsData) {
+  const storageKey = `spellingLogs_${username}`;
+  localStorage.setItem(storageKey, JSON.stringify(logsData));
+}
+
+// Login handler
+loginBtn.addEventListener('click', () => {
+  const username = usernameInput.value.trim();
+  if (!username) {
+    alert('Please enter your name');
+    return;
+  }
+  currentUser = username;
+  localStorage.setItem('currentUser', username);
+  logs = getUserLogs(currentUser);
+  showHome();
+});
+
+// Allow Enter key to login
+usernameInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    loginBtn.click();
+  }
+});
+
+// Logout handler
+logoutBtn.addEventListener('click', () => {
+  if (confirm('Are you sure you want to logout?')) {
+    currentUser = null;
+    localStorage.removeItem('currentUser');
+    logs = [];
+    loginScreen.style.display = 'flex';
+    home.style.display = 'none';
+    test.style.display = 'none';
+    trendsView.style.display = 'none';
+    usernameInput.value = '';
+  }
+});
+
+function showHome() {
+  loginScreen.style.display = 'none';
+  home.style.display = 'block';
+  currentUserDisplay.textContent = `👤 Logged in as: ${currentUser}`;
+}
+
+// Populate grade dropdown from unique grades in words.json
+function populateGradeDropdown() {
+  const uniqueGrades = [...new Set(words.map(w => w.grade))].sort();
+  
+  // Keep "All Grades" option
+  gradeSelect.innerHTML = '<option value="all">All Grades</option>';
+  
+  // Add each unique grade as an option
+  uniqueGrades.forEach(grade => {
+    const option = document.createElement('option');
+    option.value = grade;
+    option.textContent = grade;
+    gradeSelect.appendChild(option);
+  });
+  
+  console.log('Grade options populated:', uniqueGrades);
+}
 
 // Function to get prioritized words (wrongs first, then random)
 function getPrioritizedWords(grade) {
@@ -172,8 +257,8 @@ submitBtn.addEventListener('click', () => {
   const correct = attempt === currentWord.toLowerCase();
   feedback.innerHTML = correct ? 'Correct! ✅🎉' : `Incorrect ❌ Correct: ${currentWord}`;
   test.classList.add(correct ? 'correct' : 'incorrect');
-  logs.push({ word: currentWord, attempt, correct, timestamp: Date.now(), sessionId });
-  localStorage.setItem('spellingLogs', JSON.stringify(logs));
+  logs.push({ word: currentWord, attempt, correct, timestamp: Date.now(), sessionId, user: currentUser });
+  saveUserLogs(currentUser, logs); // Save to user-specific storage
   submitBtn.style.display = 'none';
   nextBtn.style.display = 'inline-block';
 });
@@ -227,35 +312,44 @@ function showTrends() {
   home.style.display = 'none';
   trendsView.style.display = 'block';
   
-  if (logs.length === 0) {
-    accuracyP.textContent = 'No data yet.';
+  // Load current user's logs
+  const userLogs = getUserLogs(currentUser);
+  
+  if (userLogs.length === 0) {
+    accuracyP.textContent = 'No data yet. Start a test to see your trends!';
     commonMistakesP.textContent = '';
     return;
   }
   
-  const total = logs.length;
-  const correctCount = logs.filter(l => l.correct).length;
+  const total = userLogs.length;
+  const correctCount = userLogs.filter(l => l.correct).length;
   const accuracy = ((correctCount / total) * 100).toFixed(2);
-  accuracyP.textContent = `Overall Accuracy: ${accuracy}%`;
+  accuracyP.textContent = `📊 ${currentUser}'s Overall Accuracy: ${accuracy}% (${correctCount}/${total} correct)`;
   
-  const mistakes = logs.filter(l => !l.correct).reduce((acc, l) => {
+  const mistakes = userLogs.filter(l => !l.correct).reduce((acc, l) => {
     acc[l.word] = (acc[l.word] || 0) + 1;
     return acc;
   }, {});
   const common = Object.entries(mistakes).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  commonMistakesP.textContent = 'Common Mistakes: ' + common.map(([word, count]) => `${word} (${count} times)`).join(', ');
+  commonMistakesP.textContent = 'Common Mistakes: ' + (common.length > 0 ? common.map(([word, count]) => `${word} (${count} times)`).join(', ') : 'None!');
   
   // Chart: Accuracy over sessions (group by sessionId)
-  const sessions = [...new Set(logs.map(l => l.sessionId))];
+  const sessions = [...new Set(userLogs.map(l => l.sessionId))];
   const sessionAcc = sessions.map(sid => {
-    const sLogs = logs.filter(l => l.sessionId === sid);
+    const sLogs = userLogs.filter(l => l.sessionId === sid);
     return (sLogs.filter(l => l.correct).length / sLogs.length) * 100;
   });
-  new Chart(accuracyChart, {
+  
+  // Destroy existing chart if it exists
+  if (window.trendChart instanceof Chart) {
+    window.trendChart.destroy();
+  }
+  
+  window.trendChart = new Chart(accuracyChart, {
     type: 'line',
     data: {
       labels: sessions.map((_, i) => `Session ${i+1}`),
-      datasets: [{ label: 'Accuracy %', data: sessionAcc, borderColor: '#007bff' }]
+      datasets: [{ label: 'Accuracy %', data: sessionAcc, borderColor: '#667eea', backgroundColor: 'rgba(102, 126, 234, 0.1)' }]
     },
     options: { scales: { y: { beginAtZero: true, max: 100 } } }
   });
