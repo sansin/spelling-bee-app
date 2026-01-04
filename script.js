@@ -1,3 +1,18 @@
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyASUhtq71S0vV0ckaQQMniW7AgQM0H08eA",
+  authDomain: "spelling-bee-app-c1e76.firebaseapp.com",
+  projectId: "spelling-bee-app-c1e76",
+  storageBucket: "spelling-bee-app-c1e76.firebasestorage.app",
+  messagingSenderId: "255014034100",
+  appId: "1:255014034100:web:ceb73dae25669a610f55e1",
+  measurementId: "G-L6E8HLFQ46"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
 // Load elements
 const loginScreen = document.getElementById('login-screen');
 const usernameInput = document.getElementById('username-input');
@@ -27,18 +42,19 @@ const accuracyChart = document.getElementById('accuracy-chart').getContext('2d')
 // Data variables
 let words = [];
 let filteredWords = [];
-let currentUser = null; // Track current logged-in user
-let logs = []; // Will be loaded from localStorage for the user
+let currentUser = null;
+let logs = [];
 let currentWords = [];
 let currentIndex = 0;
 let currentWord = '';
-let sessionId = Date.now(); // Unique per session
+let sessionId = Date.now();
 
 // Check if user is already logged in
 window.addEventListener('DOMContentLoaded', () => {
   const savedUser = localStorage.getItem('currentUser');
   if (savedUser) {
     currentUser = savedUser;
+    loadUserLogsFromFirebase();
     showHome();
   }
 });
@@ -52,16 +68,34 @@ fetch('data/words.json')
   })
   .catch(err => console.error('Error loading words:', err));
 
-// Get user-specific logs from localStorage
-function getUserLogs(username) {
-  const storageKey = `spellingLogs_${username}`;
-  return JSON.parse(localStorage.getItem(storageKey) || '[]');
+// Load user logs from Firebase
+function loadUserLogsFromFirebase() {
+  if (!currentUser) return;
+  
+  const userRef = database.ref(`users/${currentUser}/logs`);
+  userRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    logs = data ? Object.values(data) : [];
+    console.log(`Loaded ${logs.length} logs for ${currentUser}`);
+  });
 }
 
-// Save user-specific logs to localStorage
-function saveUserLogs(username, logsData) {
-  const storageKey = `spellingLogs_${username}`;
-  localStorage.setItem(storageKey, JSON.stringify(logsData));
+// Save user logs to Firebase
+function saveUserLogsToFirebase(logEntry) {
+  if (!currentUser) {
+    console.error('No user logged in');
+    return;
+  }
+  
+  const userRef = database.ref(`users/${currentUser}/logs`);
+  const newLogRef = userRef.push();
+  newLogRef.set(logEntry, (error) => {
+    if (error) {
+      console.error('Error saving to Firebase:', error);
+    } else {
+      console.log('Log saved to Firebase');
+    }
+  });
 }
 
 // Login handler
@@ -73,7 +107,7 @@ loginBtn.addEventListener('click', () => {
   }
   currentUser = username;
   localStorage.setItem('currentUser', username);
-  logs = getUserLogs(currentUser);
+  loadUserLogsFromFirebase();
   showHome();
 });
 
@@ -257,8 +291,19 @@ submitBtn.addEventListener('click', () => {
   const correct = attempt === currentWord.toLowerCase();
   feedback.innerHTML = correct ? 'Correct! ✅🎉' : `Incorrect ❌ Correct: ${currentWord}`;
   test.classList.add(correct ? 'correct' : 'incorrect');
-  logs.push({ word: currentWord, attempt, correct, timestamp: Date.now(), sessionId, user: currentUser });
-  saveUserLogs(currentUser, logs); // Save to user-specific storage
+  
+  const logEntry = { 
+    word: currentWord, 
+    attempt, 
+    correct, 
+    timestamp: Date.now(), 
+    sessionId,
+    user: currentUser 
+  };
+  
+  logs.push(logEntry);
+  saveUserLogsToFirebase(logEntry); // Save to Firebase
+  
   submitBtn.style.display = 'none';
   nextBtn.style.display = 'inline-block';
 });
@@ -312,21 +357,18 @@ function showTrends() {
   home.style.display = 'none';
   trendsView.style.display = 'block';
   
-  // Load current user's logs
-  const userLogs = getUserLogs(currentUser);
-  
-  if (userLogs.length === 0) {
+  if (logs.length === 0) {
     accuracyP.textContent = 'No data yet. Start a test to see your trends!';
     commonMistakesP.textContent = '';
     return;
   }
   
-  const total = userLogs.length;
-  const correctCount = userLogs.filter(l => l.correct).length;
+  const total = logs.length;
+  const correctCount = logs.filter(l => l.correct).length;
   const accuracy = ((correctCount / total) * 100).toFixed(2);
   accuracyP.textContent = `📊 ${currentUser}'s Overall Accuracy: ${accuracy}% (${correctCount}/${total} correct)`;
   
-  const mistakes = userLogs.filter(l => !l.correct).reduce((acc, l) => {
+  const mistakes = logs.filter(l => !l.correct).reduce((acc, l) => {
     acc[l.word] = (acc[l.word] || 0) + 1;
     return acc;
   }, {});
@@ -334,9 +376,9 @@ function showTrends() {
   commonMistakesP.textContent = 'Common Mistakes: ' + (common.length > 0 ? common.map(([word, count]) => `${word} (${count} times)`).join(', ') : 'None!');
   
   // Chart: Accuracy over sessions (group by sessionId)
-  const sessions = [...new Set(userLogs.map(l => l.sessionId))];
+  const sessions = [...new Set(logs.map(l => l.sessionId))];
   const sessionAcc = sessions.map(sid => {
-    const sLogs = userLogs.filter(l => l.sessionId === sid);
+    const sLogs = logs.filter(l => l.sessionId === sid);
     return (sLogs.filter(l => l.correct).length / sLogs.length) * 100;
   });
   
