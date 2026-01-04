@@ -324,21 +324,28 @@ if ('speechSynthesis' in window) {
 }
 
 function speakWord(word) {
-  // Use Web Speech API for natural voice synthesis
+  // Use Web Speech API for natural US English voice synthesis
   const utterance = new SpeechSynthesisUtterance(word);
   utterance.rate = 0.9; // Slightly slower for clarity
   utterance.pitch = 1;
   utterance.volume = 1;
-  
-  // Try to find a natural female voice
+
+  // Prefer US English female voice
   const voices = speechSynthesis.getVoices();
-  const femaleVoice = voices.find(v => v.name.includes('Female') || v.name.includes('female')) || voices[0];
-  
-  if (femaleVoice) {
-    utterance.voice = femaleVoice;
-    console.log('Using voice:', femaleVoice.name);
+  // Try to find a US English female voice
+  let usVoice = voices.find(v => v.lang === 'en-US' && v.name.toLowerCase().includes('female'));
+  // Fallback: any US English voice
+  if (!usVoice) usVoice = voices.find(v => v.lang === 'en-US');
+  // Fallback: any English voice
+  if (!usVoice) usVoice = voices.find(v => v.lang && v.lang.startsWith('en'));
+  // Fallback: first available
+  if (!usVoice) usVoice = voices[0];
+
+  if (usVoice) {
+    utterance.voice = usVoice;
+    console.log('Using voice:', usVoice.name, usVoice.lang);
   }
-  
+
   speechSynthesis.cancel(); // Cancel any ongoing speech
   speechSynthesis.speak(utterance);
 }
