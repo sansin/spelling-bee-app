@@ -309,16 +309,13 @@ function shuffleArray(array) {
   return shuffled;
 }
 
-// Fetch word meaning from Free Dictionary API
+// Fetch word meaning from Free Dictionary API and speak it
 async function fetchAndShowMeaning(word) {
-  meaningDisplay.style.display = 'block';
-  meaningDisplay.innerHTML = '<p style="color: #667eea; font-style: italic;">Loading definition...</p>';
-  
   try {
     const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
     
     if (!response.ok) {
-      meaningDisplay.innerHTML = '<p style="color: #ef4444;">No definition found for this word.</p>';
+      alert('No definition found for this word.');
       return;
     }
     
@@ -326,7 +323,7 @@ async function fetchAndShowMeaning(word) {
     const entry = data[0];
     
     if (!entry.meanings || entry.meanings.length === 0) {
-      meaningDisplay.innerHTML = '<p style="color: #ef4444;">No definitions available.</p>';
+      alert('No definitions available.');
       return;
     }
     
@@ -335,15 +332,16 @@ async function fetchAndShowMeaning(word) {
     const definition = meaning.definitions[0]?.definition || 'No definition available';
     const example = meaning.definitions[0]?.example || '';
     const partOfSpeech = meaning.partOfSpeech || '';
-    const phonetic = entry.phonetic || '';
     
+    // Speak the definition
+    const textToSpeak = `${word}. ${partOfSpeech}. ${definition}. Example: ${example || 'No example provided'}`;
+    speakWord(textToSpeak);
+    
+    // Also show the definition on screen
+    meaningDisplay.style.display = 'block';
     let html = `
       <div style="font-weight: bold; color: #667eea; margin-bottom: 0.5rem;">${word.toUpperCase()}</div>
     `;
-    
-    if (phonetic) {
-      html += `<div style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;"><em>${phonetic}</em></div>`;
-    }
     
     if (partOfSpeech) {
       html += `<div style="font-size: 0.9rem; color: #764ba2; font-weight: 500; margin-bottom: 0.5rem;">${partOfSpeech}</div>`;
@@ -355,19 +353,11 @@ async function fetchAndShowMeaning(word) {
       html += `<div style="font-size: 0.9rem; color: #555; font-style: italic;"><strong>Example:</strong> "${example}"</div>`;
     }
     
-    html += `<button id="speak-meaning-btn" style="margin-top: 0.75rem; padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">🔊 Speak Definition</button>`;
-    
     meaningDisplay.innerHTML = html;
-    
-    // Add event listener for speak meaning button
-    document.getElementById('speak-meaning-btn').addEventListener('click', () => {
-      const textToSpeak = `${word}. ${partOfSpeech}. ${definition}. Example: ${example || 'No example provided'}`;
-      speakWord(textToSpeak);
-    });
     
   } catch (error) {
     console.error('Error fetching definition:', error);
-    meaningDisplay.innerHTML = '<p style="color: #ef4444;">Unable to fetch definition. Check your internet connection.</p>';
+    alert('Unable to fetch definition. Check your internet connection.');
   }
 }
 
