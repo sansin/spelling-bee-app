@@ -339,9 +339,7 @@ async function fetchAndShowMeaning(word) {
     
     // Also show the definition on screen
     meaningDisplay.style.display = 'block';
-    let html = `
-      <div style="font-weight: bold; color: #667eea; margin-bottom: 0.5rem;">${word.toUpperCase()}</div>
-    `;
+    let html = '';
     
     if (partOfSpeech) {
       html += `<div style="font-size: 0.9rem; color: #764ba2; font-weight: 500; margin-bottom: 0.5rem;">${partOfSpeech}</div>`;
