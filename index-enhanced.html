@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#FFD700">
+    <meta name="description" content="Spelling Bee Practice App with Gamification - Learn to spell with instant feedback and analytics">
+    <meta name="keywords" content="spelling, bee, practice, education, kids, gamification, badges, streaks">
+    <title>🐝 Spelling Bee - Practice & Master Spelling</title>
+    
+    <!-- CSS Stylesheet -->
+    <link rel="stylesheet" href="styles-bee-theme.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVJkEZSMUkrQ6usKGiOW4XkDvZrX33U8drQllUnZPAVLT12_dminnnETqa3XWFvarjnvnj26zo6w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <!-- Firebase SDK (Compat version for script tags) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body role="application" aria-label="Spelling Bee Practice Application">
+    <!-- Honeycomb Background Pattern -->
+    <div class="honeycomb-bg" aria-hidden="true"></div>
+
+    <!-- ================================
+         LOGIN SCREEN
+         ================================ -->
+    <div id="login-screen" role="main" aria-labelledby="login-title">
+        <div>
+            <div class="bee-logo" aria-hidden="true">🐝</div>
+            <h1 id="login-title">Spelling Bee</h1>
+            <p>Practice your spelling with instant feedback, earn badges, and climb the leaderboard!</p>
+            
+            <form id="login-form" onsubmit="return false;">
+                <input 
+                    id="username-input" 
+                    type="text" 
+                    placeholder="Enter your name" 
+                    autocomplete="off"
+                    aria-label="Your name"
+                    aria-required="true"
+                    required
+                    minlength="2"
+                    maxlength="50"
+                >
+                <button id="login-btn" type="button" class="btn-primary">
+                    <i class="fas fa-play"></i> Start Practicing
+                </button>
+            </form>
+            
+            <p style="font-size: 12px; color: #999; margin-top: 16px;">
+                ✨ Tip: Your progress is saved in the cloud. You can resume anytime!
+            </p>
+        </div>
+    </div>
+
+    <!-- ================================
+         HOME SCREEN
+         ================================ -->
+    <div id="home" style="display: none;" role="main" aria-labelledby="home-title">
+        <div class="home-container">
+            <div class="home-header">
+                <div class="bee-logo" aria-hidden="true">🐝</div>
+                <h1 id="home-title">Spelling Bee Practice</h1>
+                <p id="current-user" aria-live="polite"></p>
+            </div>
+
+            <!-- User Stats Quick View -->
+            <div class="stats-bar" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; padding: 16px; background: rgba(255, 215, 0, 0.1); border-radius: 12px; border: 2px solid #FFD700;">
+                <div style="text-align: center;">
+                    <div style="font-size: 20px; font-weight: 700;">
+                        <span id="user-level" aria-label="Your current level">🌟</span>
+                    </div>
+                    <div style="font-size: 12px; color: #666;">Level</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 20px; font-weight: 700;">
+                        <span id="user-points" aria-label="Your points">0</span>
+                    </div>
+                    <div style="font-size: 12px; color: #666;">Points</div>
+                </div>
+                <div style="text-align: center;">
+                    <div class="streak-badge" style="justify-content: center; margin: 0 auto;">
+                        <span class="streak-icon" aria-hidden="true">🔥</span>
+                        <span id="user-streak" aria-label="Current streak">0</span>
+                    </div>
+                    <div style="font-size: 12px; color: #666;">Streak</div>
+                </div>
+            </div>
+
+            <!-- Controls Grid -->
+            <div class="controls-grid">
+                <div>
+                    <label for="grade">
+                        <i class="fas fa-book" aria-hidden="true"></i> Grade Level:
+                    </label>
+                    <select id="grade" aria-label="Select grade level">
+                        <option value="all">All Grades</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="voice">
+                        <i class="fas fa-microphone" aria-hidden="true"></i> Voice:
+                    </label>
+                    <select id="voice" aria-label="Select voice">
+                        <option value="">Auto (Best Available)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Main Action Buttons -->
+            <div class="button-group">
+                <button id="start" class="btn-primary" aria-label="Start a new spelling test">
+                    <i class="fas fa-play"></i> Start Test
+                </button>
+                <button id="view-badges" class="btn-secondary" aria-label="View your earned badges and achievements">
+                    <i class="fas fa-trophy"></i> Badges & Achievements
+                </button>
+                <button id="trends" class="btn-secondary" aria-label="View your analytics and performance charts">
+                    <i class="fas fa-chart-bar"></i> View Analytics
+                </button>
+                <button id="logout-btn" class="btn-secondary" aria-label="Logout from your account">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================
+         TEST SCREEN
+         ================================ -->
+    <div id="test" style="display: none;" role="main" aria-labelledby="test-title">
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 id="test-title" style="margin: 0;">📝 Test Your Spelling</h2>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <span aria-live="polite" aria-label="Question counter">
+                        <span id="question-counter">1</span> / <span id="total-questions">10</span>
+                    </span>
+                    <div class="progress-container" style="width: 150px;">
+                        <div class="progress-bar" id="progress-bar" style="width: 10%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <h2 id="word-prompt" role="status" aria-live="assertive">Spell the word</h2>
+
+            <!-- Action Buttons -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                <button id="listen" class="btn-primary btn-icon" aria-label="Listen to the word pronunciation">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+                <button id="meaning-btn" class="btn-primary btn-icon" aria-label="Speak the word definition">
+                    <i class="fas fa-book-open"></i>
+                </button>
+            </div>
+
+            <!-- Input -->
+            <input 
+                id="attempt" 
+                type="text" 
+                placeholder="Type the word here" 
+                autocomplete="off"
+                aria-label="Type the spelling"
+                aria-required="true"
+                spellcheck="false"
+            >
+
+            <!-- Submit Button -->
+            <button id="submit" class="btn-success" style="width: 100%; margin-top: 20px; font-size: 18px;">
+                <i class="fas fa-check"></i> Submit Answer
+            </button>
+
+            <!-- Next Button (Hidden until answer submitted) -->
+            <button id="next" class="btn-success" style="display: none; width: 100%; margin-top: 12px; font-size: 18px;">
+                <i class="fas fa-arrow-right"></i> Next Word
+            </button>
+
+            <!-- End Session Button -->
+            <button id="end" class="btn-error" style="width: 100%; margin-top: 12px; font-size: 18px;">
+                <i class="fas fa-stop"></i> End Session
+            </button>
+
+            <!-- Feedback Message -->
+            <div id="feedback" role="alert" aria-live="assertive"></div>
+
+            <!-- Definition Display -->
+            <div id="meaning-display" style="display: none;" role="region" aria-label="Word definition" aria-live="polite"></div>
+
+            <!-- Session Stats -->
+            <div id="session-stats" style="display: none; margin-top: 24px; padding: 16px; background: rgba(76, 175, 80, 0.1); border-radius: 12px; border-left: 4px solid #4CAF50;">
+                <p style="margin: 4px 0; font-size: 14px;">
+                    <i class="fas fa-check" style="color: #4CAF50;"></i>
+                    Correct: <span id="session-correct">0</span>
+                </p>
+                <p style="margin: 4px 0; font-size: 14px;">
+                    <i class="fas fa-times" style="color: #f44336;"></i>
+                    Incorrect: <span id="session-incorrect">0</span>
+                </p>
+                <p style="margin: 4px 0; font-size: 14px;">
+                    <i class="fas fa-percent" style="color: #2196F3;"></i>
+                    Accuracy: <span id="session-accuracy">0</span>%
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================
+         BADGES & ACHIEVEMENTS SCREEN
+         ================================ -->
+    <div id="badges-view" style="display: none;" role="main" aria-labelledby="badges-title">
+        <div style="padding: 24px; max-width: 1200px; margin: 0 auto;">
+            <h1 id="badges-title" style="text-align: center; margin-bottom: 32px;">
+                <i class="fas fa-medal"></i> Your Achievements
+            </h1>
+
+            <!-- Level & Points Summary -->
+            <div style="background: var(--white); padding: 24px; border-radius: 16px; border: 3px solid var(--bee-black); margin-bottom: 32px; text-align: center;">
+                <h2 style="color: var(--bee-black); margin-bottom: 16px;">Level Progress</h2>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 24px; flex-wrap: wrap;">
+                    <div>
+                        <div style="font-size: 48px; font-weight: 700; color: var(--bee-yellow);" id="badge-level">
+                            <i class="fas fa-star"></i> 5
+                        </div>
+                        <div style="font-size: 14px; color: #666;">Current Level</div>
+                    </div>
+                    <div style="width: 300px;">
+                        <div style="font-size: 14px; color: #666; margin-bottom: 8px;">
+                            <span id="badge-points">2,500</span> / <span id="badge-points-next">5,000</span> Points
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-bar" id="level-progress-bar" style="width: 50%;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size: 48px; margin-bottom: 8px;">🔥</div>
+                        <div style="font-size: 24px; font-weight: 700; color: var(--warning-orange);" id="badge-streak">0</div>
+                        <div style="font-size: 14px; color: #666;">Day Streak</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Badges Grid -->
+            <div>
+                <h2 style="margin-bottom: 16px; color: var(--bee-black);">
+                    <i class="fas fa-trophy"></i> Badges (<span id="badge-count">0</span>/8)
+                </h2>
+                <div class="badges-grid" id="badges-container"></div>
+            </div>
+
+            <!-- Back Button -->
+            <div style="text-align: center; margin-top: 32px;">
+                <button id="back-from-badges" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Home
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================
+         ANALYTICS & TRENDS SCREEN
+         ================================ -->
+    <div id="trends-view" style="display: none;" role="main" aria-labelledby="trends-title">
+        <div style="max-width: 1400px; margin: 0 auto;">
+            <h1 id="trends-title" style="text-align: center; margin-bottom: 32px;">
+                <i class="fas fa-chart-line"></i> Your Analytics
+            </h1>
+
+            <!-- KPI Dashboard -->
+            <div class="kpi-dashboard">
+                <div class="kpi-card">
+                    <div class="kpi-label">Accuracy Rate</div>
+                    <div class="kpi-value" id="accuracy" aria-label="Accuracy rate">-</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Total Questions</div>
+                    <div class="kpi-value" id="kpi-total" aria-label="Total questions answered">0</div>
+                </div>
+                <div class="kpi-card kpi-success">
+                    <div class="kpi-label">Correct</div>
+                    <div class="kpi-value" id="kpi-correct" aria-label="Correct answers">0</div>
+                </div>
+                <div class="kpi-card kpi-danger">
+                    <div class="kpi-label">Incorrect</div>
+                    <div class="kpi-value" id="kpi-incorrect" aria-label="Incorrect answers">0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Sessions</div>
+                    <div class="kpi-value" id="kpi-sessions" aria-label="Total sessions">0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Avg Time/Word</div>
+                    <div class="kpi-value" id="kpi-avgtime" aria-label="Average time per word">0s</div>
+                </div>
+            </div>
+
+            <!-- Charts Grid -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3><i class="fas fa-line-chart" style="color: var(--bee-yellow);"></i> Session Accuracy Trend</h3>
+                    <div class="chart-container">
+                        <canvas id="accuracy-chart" role="img" aria-label="Session accuracy trend over time"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3><i class="fas fa-pie-chart" style="color: var(--success-green);"></i> Correct vs Incorrect</h3>
+                    <div class="chart-container small">
+                        <canvas id="correct-incorrect-chart" role="img" aria-label="Pie chart of correct versus incorrect answers"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3><i class="fas fa-bar-chart" style="color: var(--primary-blue);"></i> Performance by Grade</h3>
+                    <div class="chart-container">
+                        <canvas id="grade-performance-chart" role="img" aria-label="Bar chart of performance by grade level"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3><i class="fas fa-graduation-cap" style="color: var(--warning-orange);"></i> Word Difficulty</h3>
+                    <div class="chart-container small">
+                        <canvas id="difficulty-chart" role="img" aria-label="Distribution of word difficulty levels"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Tables -->
+            <div class="data-grid">
+                <div class="data-card">
+                    <h3><i class="fas fa-exclamation-circle" style="color: var(--error-red);"></i> Top 10 Challenging Words</h3>
+                    <div class="word-list" id="wrong-words" role="region" aria-label="Most frequently misspelled words"></div>
+                </div>
+
+                <div class="data-card">
+                    <h3><i class="fas fa-check-circle" style="color: var(--success-green);"></i> Words Mastered</h3>
+                    <div class="word-list" id="correct-words" role="region" aria-label="Words spelled correctly"></div>
+                </div>
+
+                <div class="data-card">
+                    <h3><i class="fas fa-clock" style="color: var(--primary-blue);"></i> Time Analytics</h3>
+                    <p id="time-stats" style="text-align: center; line-height: 1.8;" role="region" aria-label="Time-based statistics"></p>
+                </div>
+            </div>
+
+            <!-- Leaderboard -->
+            <div style="background: var(--white); padding: 24px; border-radius: 16px; border: 3px solid var(--bee-black); margin: 32px auto; max-width: 600px;">
+                <h3 style="margin-bottom: 16px;">
+                    <i class="fas fa-crown" style="color: var(--bee-gold);"></i> Top Spellers
+                </h3>
+                <div class="leaderboard" id="leaderboard-container" role="region" aria-label="Top users leaderboard"></div>
+            </div>
+
+            <!-- Back Button -->
+            <div class="button-group" style="max-width: 400px; margin: 32px auto 0;">
+                <button id="back-home" class="btn-secondary">
+                    <i class="fas fa-home"></i> Back to Home
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confetti Container (for celebrations) -->
+    <div id="confetti-container" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2000;"></div>
+
+    <!-- Chart.js for visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    
+    <!-- Main Application Script -->
+    <script src="script.js"></script>
+</body>
+</html>
