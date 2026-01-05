@@ -513,6 +513,12 @@ submitBtn.addEventListener('click', () => {
     if (window.gamification) {
       window.gamification.userStats.totalPoints += pointsEarned;
       window.gamification.updateStreak(true);
+      // Update UI to reflect points immediately
+      window.gamification.updateGameificationUI();
+      // Save to Firebase so points persist
+      window.gamification.saveGameificationData(currentUser).catch(err => 
+        console.error('Error saving points:', err)
+      );
     }
   } else {
     // GAMIFICATION: Update streak on wrong answer
