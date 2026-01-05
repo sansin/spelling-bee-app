@@ -2,7 +2,8 @@
 
 A fully-featured spelling bee practice application with user authentication, cloud data persistence, smart word prioritization, and comprehensive analytics. Perfect for students to practice spelling with instant feedback and detailed progress tracking.
 
-**Live Demo:** [https://sansin.github.io/spelling-bee-app](https://sansin.github.io/spelling-bee-app)
+**Live Demo:** [https://sansin.github.io/spelling-bee-app](https://sansin.github.io/spelling-bee-app)  
+**Current Version:** v1.1 (January 4, 2026)
 
 ---
 
@@ -13,6 +14,13 @@ A fully-featured spelling bee practice application with user authentication, clo
 - **Natural Voice Synthesis** - Hear words pronounced using system voices (US English)
 - **Instant Feedback** - Immediate correct/incorrect responses with spelling corrections
 - **Session Tracking** - Track all attempts with timestamps and timing metrics
+
+### 📖 Word Definitions (NEW in v1.1)
+- **Dynamic Definition Lookup** - Fetch real-time definitions from Free Dictionary API
+- **One-Click Learning** - Click "🔊 Speak Definition" to see definition and hear it spoken
+- **No Word Spoilers** - Word is hidden while showing only the definition text
+- **Auto-Pronunciation** - Definition automatically reads aloud using Web Speech API
+- **Usage Examples** - See real usage examples for better context understanding
 
 ### 👤 User Management
 - **User Profiles** - Create and manage multiple user accounts
@@ -34,11 +42,19 @@ The app intelligently selects words based on:
 - **Mastered Words** - Track words you've conquered (10+ correct)
 - **Time Analytics** - Total, average, fastest, and slowest word timing
 - **Trend Chart** - Visual representation of accuracy across sessions
+- **KPI Dashboard** - 6 key metrics at a glance (accuracy, total, correct, incorrect, sessions, avg time)
 
 ### 🎙️ Voice Selection
 - **Multiple Voices** - Choose from all installed US English voices
 - **Auto-Detection** - Automatically finds the best available voice
 - **System Integration** - Uses macOS system voices for natural pronunciation
+- **Definition Speech** - Separate voice control for reading definitions
+
+### 📱 Mobile Optimization (Improved in v1.1)
+- **Responsive Design** - Works flawlessly on phones, tablets, and desktops
+- **Optimized Analytics** - Mobile-friendly KPI dashboard and charts
+- **Touch-Friendly UI** - Large buttons and proper spacing for mobile use
+- **Cross-Device Sync** - Data syncs seamlessly across all devices
 
 ---
 
@@ -91,6 +107,10 @@ No installation needed! Your data is automatically synced to the cloud.
 
 ### 4. Start Practicing
 - Click "Listen 🎤" to hear the word pronounced
+- Click "🔊 Speak Definition" to learn the word's meaning (NEW in v1.1)
+  - Definition and usage example display on screen
+  - Definition is automatically read aloud
+  - Word itself is hidden to avoid spoilers
 - Type your spelling attempt in the text box
 - Click "Submit" to check your answer
 - Click "Next" to move to the next word
@@ -99,6 +119,13 @@ No installation needed! Your data is automatically synced to the cloud.
 ### 5. Review Trends
 - Click "View Trends" on the home screen
 - See accuracy stats, problem words, and progress charts
+- View KPI cards showing:
+  - Accuracy Rate
+  - Total Questions Asked
+  - Correct Answers
+  - Incorrect Answers
+  - Number of Sessions
+  - Average Time per Word
 - All data persists across sessions
 
 ---
