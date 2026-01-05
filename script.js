@@ -495,9 +495,12 @@ uploadInput.addEventListener('change', (e) => {
 // View trends
 trendsBtn.addEventListener('click', showTrends);
 
-function showTrends() {
+async function showTrends() {
   home.style.display = 'none';
   trendsView.style.display = 'block';
+  
+  // Load data from Firebase first
+  await loadUserLogsFromFirebase();
   
   console.log('Showing trends. Current logs:', logs.length);
   
@@ -601,7 +604,7 @@ function showTrends() {
   const fastestWord = logs.reduce((min, l) => l.timeSpent < (min.timeSpent || Infinity) ? l : min, {});
   const slowestWord = logs.reduce((max, l) => l.timeSpent > (max.timeSpent || 0) ? l : max, {});
   
-  document.getElementById('time-stats').textContent = 
+  document.getElementById('time-stats').innerHTML = 
     `<strong>Total Time:</strong> ${Math.round(totalTimeMs / 60000)}m<br>` +
     `<strong>Average/Word:</strong> ${avgTimePerWord}s<br>` +
     `<strong>Fastest:</strong> ${fastestWord.word || 'N/A'} (${fastestWord.timeSpent ? Math.round(fastestWord.timeSpent / 1000) : 0}s)<br>` +
