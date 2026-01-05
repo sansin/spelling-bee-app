@@ -333,11 +333,7 @@ async function fetchAndShowMeaning(word) {
     const example = meaning.definitions[0]?.example || '';
     const partOfSpeech = meaning.partOfSpeech || '';
     
-    // Speak the definition
-    const textToSpeak = `${word}. ${partOfSpeech}. ${definition}. Example: ${example || 'No example provided'}`;
-    speakWord(textToSpeak);
-    
-    // Also show the definition on screen
+    // Show the definition on screen
     meaningDisplay.style.display = 'block';
     let html = '';
     
@@ -351,7 +347,15 @@ async function fetchAndShowMeaning(word) {
       html += `<div style="font-size: 0.9rem; color: #555; font-style: italic;"><strong>Example:</strong> "${example}"</div>`;
     }
     
+    // Add a speak definition button
+    html += `<button id="speak-definition-btn" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">🔊 Speak Definition</button>`;
+    
     meaningDisplay.innerHTML = html;
+    
+    // Add click listener for the speak button
+    document.getElementById('speak-definition-btn').addEventListener('click', () => {
+      speakWord(definition);
+    });
     
   } catch (error) {
     console.error('Error fetching definition:', error);
