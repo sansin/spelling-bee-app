@@ -117,23 +117,7 @@
             </div>
 
             <div class="button-group">
-                <button id="back-from-badges">← Back to Homeevel:</label>
-                    <select id="grade">
-                        <option value="all">All Grades</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="voice">🎙️ Voice:</label>
-                    <select id="voice">
-                        <option value="">Auto (Best Available)</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="button-group">
-                <button id="start">▶️ Start Test</button>
-                <button id="trends">📊 View Analytics</button>
-                <button id="logout-btn">🚪 Logout</button>
+                <button id="back-from-badges">← Back to Home</button>
             </div>
         </div>
     </div>
@@ -182,24 +166,13 @@
             <div class="kpi-card">
                 <div class="kpi-label">Avg Time/Word</div>
                 <div class="kpi-value" id="kpi-avgtime">0s</div>
-         !-- Leaderboard in Analytics -->
-        <div class="data-card" style="margin-top: 32px;">
-            <h3>🏅 Global Leaderboard</h3>
-            <div id="analytics-leaderboard" class="leaderboard"></div>
+            </div>
         </div>
 
-        <div class="button-group">
-            <button id="back-home">← Back to Home</button>
-        </div>
-    </div>
-
-    <!-- Confetti Container (for celebrations) -->
-    <div id="confetti-container" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999;"></div>
-
-    <!-- Chart.js for trends visualization -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <!-- Gamification System -->
-    <script src="gamification-integratio
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>Session Accuracy Trend</h3>
                 <div class="chart-container">
                     <canvas id="accuracy-chart"></canvas>
                 </div>
@@ -245,13 +218,24 @@
             </div>
         </div>
 
+        <!-- Leaderboard in Analytics -->
+        <div class="data-card" style="margin-top: 32px;">
+            <h3>🏅 Global Leaderboard</h3>
+            <div id="analytics-leaderboard" class="leaderboard"></div>
+        </div>
+
         <div class="button-group">
             <button id="back-home">← Back to Home</button>
         </div>
     </div>
 
+    <!-- Confetti Container (for celebrations) -->
+    <div id="confetti-container" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999;"></div>
+
     <!-- Chart.js for trends visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <!-- Gamification System -->
+    <script src="gamification-integration.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
