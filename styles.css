@@ -658,3 +658,263 @@ input::placeholder {
         font-size: 1.5rem;
     }
 }
+
+/* ========== GAMIFICATION STYLES ========== */
+
+/* Stats Bar */
+.stats-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 20px 0;
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(76, 175, 80, 0.1) 100%);
+    border-radius: 16px;
+    border: 3px solid var(--bee-yellow);
+}
+
+.stat-item {
+    text-align: center;
+    padding: 8px;
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--bee-black);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+}
+
+/* Badges View Screen */
+#badges-view {
+    min-height: 100vh;
+    padding: 24px;
+    background: linear-gradient(135deg, var(--bee-yellow) 0%, #FFF5E1 100%);
+}
+
+.badges-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: white;
+    padding: 32px;
+    border-radius: 24px;
+    border: 4px solid var(--bee-black);
+    box-shadow: var(--shadow-lg);
+}
+
+.badges-container h1 {
+    text-align: center;
+    margin-bottom: 24px;
+    color: var(--bee-black);
+}
+
+.badges-container h2 {
+    color: var(--bee-black);
+    margin-top: 32px;
+    margin-bottom: 16px;
+}
+
+/* Badge Stats */
+.badge-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.badge-stat-card {
+    background: linear-gradient(135deg, var(--bee-yellow) 0%, var(--bee-gold) 100%);
+    color: var(--bee-black);
+    padding: 16px;
+    border-radius: 12px;
+    border: 3px solid var(--bee-black);
+    text-align: center;
+    box-shadow: var(--shadow-md);
+}
+
+.badge-stat-label {
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.8;
+    margin-bottom: 8px;
+}
+
+.badge-stat-value {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+/* Progress Bar for Level */
+.progress-container {
+    width: 100%;
+    height: 30px;
+    background: #e0e0e0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid var(--bee-black);
+    margin: 16px 0;
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, var(--success-green) 0%, var(--bee-yellow) 100%);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    transition: width 0.3s ease;
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--bee-black);
+}
+
+/* Badges Grid */
+.badges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.badge {
+    padding: 16px;
+    border-radius: 12px;
+    text-align: center;
+    border: 3px solid var(--bee-black);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+}
+
+.badge.unlocked {
+    background: linear-gradient(135deg, var(--bee-yellow) 0%, var(--bee-gold) 100%);
+    box-shadow: var(--shadow-md);
+    animation: badge-unlock 0.6s ease;
+}
+
+.badge.unlocked:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-lg);
+}
+
+.badge.locked {
+    background: #f0f0f0;
+    color: #999;
+    opacity: 0.6;
+}
+
+.badge-icon {
+    font-size: 48px;
+    margin-bottom: 8px;
+}
+
+.badge-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--bee-black);
+}
+
+.badge.locked .badge-name {
+    color: #999;
+}
+
+/* Leaderboard */
+.leaderboard {
+    width: 100%;
+    margin-top: 16px;
+}
+
+.leaderboard-entry {
+    display: grid;
+    grid-template-columns: 60px 1fr 60px 100px;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(76, 175, 80, 0.1) 100%);
+    border-left: 4px solid var(--bee-yellow);
+    margin-bottom: 8px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.rank {
+    text-align: center;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.username {
+    color: var(--bee-black);
+    font-weight: 600;
+}
+
+.level {
+    background: var(--bee-yellow);
+    color: var(--bee-black);
+    padding: 4px 8px;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.points {
+    text-align: right;
+    color: var(--success-green);
+    font-weight: 700;
+}
+
+/* Responsive Leaderboard */
+@media (max-width: 600px) {
+    .leaderboard-entry {
+        grid-template-columns: 40px 1fr 50px;
+        gap: 8px;
+    }
+    
+    .level {
+        font-size: 12px;
+        padding: 2px 6px;
+    }
+    
+    .points {
+        font-size: 12px;
+    }
+}
+
+/* Badge Popup Animation */
+@keyframes badge-popup {
+    0% {
+        transform: scale(0.5) rotateZ(-180deg);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.1) rotateZ(10deg);
+    }
+    100% {
+        transform: scale(1) rotateZ(0);
+        opacity: 1;
+    }
+}
+
+/* Confetti Animation */
+@keyframes confetti-fall {
+    0% {
+        opacity: 1;
+        transform: translateY(0) rotateZ(0deg);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(100vh) rotateZ(720deg);
+    }
+}

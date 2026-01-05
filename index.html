@@ -8,6 +8,8 @@
     <meta name="theme-color" content="#667eea">
     <title>Spelling Bee Practice App</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <!-- Firebase SDK (Compat version for script tags) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -29,9 +31,77 @@
             <h1>🐝 Spelling Bee Practice</h1>
             <p id="current-user"></p>
             
+            <!-- Stats Bar (Gamification) -->
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div id="user-level" class="stat-value">1</div>
+                    <div class="stat-label">Level</div>
+                </div>
+                <div class="stat-item">
+                    <div id="user-points" class="stat-value">0</div>
+                    <div class="stat-label">Points</div>
+                </div>
+                <div class="stat-item">
+                    <span id="user-streak" class="stat-value">0</span>
+                    <div class="stat-label">🔥 Streak</div>
+                </div>
+            </div>
+            
             <div class="controls-grid">
-                <div>
-                    <label for="grade">📚 Grade Level:</label>
+                <div>view-badges">🏆 Badges & Achievements</button>
+                <button id="trends">📊 View Analytics</button>
+                <button id="logout-btn">🚪 Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Badges View Screen -->
+    <div id="badges-view" style="display: none;">
+        <div class="badges-container">
+            <h1>🏆 Your Achievements</h1>
+            
+            <div class="badge-stats">
+                <div class="badge-stat-card">
+                    <div class="badge-stat-label">Level</div>
+                    <div id="badge-level" class="badge-stat-value"><i class="fas fa-star"></i> 1</div>
+                </div>
+                <div class="badge-stat-card">
+                    <div class="badge-stat-label">Total Points</div>
+                    <div id="badge-points" class="badge-stat-value">0</div>
+                </div>
+                <div class="badge-stat-card">
+                    <div class="badge-stat-label">Next Level</div>
+                    <div id="badge-points-next" class="badge-stat-value">1000</div>
+                </div>
+                <div class="badge-stat-card">
+                    <div class="badge-stat-label">🔥 Streak</div>
+                    <div id="badge-streak" class="badge-stat-value">0</div>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-container">
+                <div id="level-progress-bar" class="progress-bar" style="width: 0%"></div>
+            </div>
+            <p style="text-align: center; color: #666; margin-top: 8px; font-size: 14px;">Progress to next level</p>
+
+            <div style="margin: 24px 0; text-align: center;">
+                <p style="font-size: 18px; font-weight: 700; color: #000;">
+                    Badges Earned: <span id="badge-count">0</span>/8
+                </p>
+            </div>
+
+            <!-- Badges Grid -->
+            <div id="badges-container" class="badges-grid"></div>
+
+            <!-- Leaderboard -->
+            <div style="margin-top: 32px;">
+                <h2>🏅 Top Players</h2>
+                <div id="leaderboard-container" class="leaderboard"></div>
+            </div>
+
+            <div class="button-group">
+                <button id="back-from-badges">← Back to Homeevel:</label>
                     <select id="grade">
                         <option value="all">All Grades</option>
                     </select>
@@ -96,13 +166,24 @@
             <div class="kpi-card">
                 <div class="kpi-label">Avg Time/Word</div>
                 <div class="kpi-value" id="kpi-avgtime">0s</div>
-            </div>
+         !-- Leaderboard in Analytics -->
+        <div class="data-card" style="margin-top: 32px;">
+            <h3>🏅 Global Leaderboard</h3>
+            <div id="analytics-leaderboard" class="leaderboard"></div>
         </div>
 
-        <!-- Charts Grid -->
-        <div class="charts-grid">
-            <div class="chart-card">
-                <h3>Session Accuracy Trend</h3>
+        <div class="button-group">
+            <button id="back-home">← Back to Home</button>
+        </div>
+    </div>
+
+    <!-- Confetti Container (for celebrations) -->
+    <div id="confetti-container" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999;"></div>
+
+    <!-- Chart.js for trends visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <!-- Gamification System -->
+    <script src="gamification-integratio
                 <div class="chart-container">
                     <canvas id="accuracy-chart"></canvas>
                 </div>

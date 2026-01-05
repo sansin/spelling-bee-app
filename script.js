@@ -69,6 +69,10 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (savedUser) {
     currentUser = savedUser;
     await loadUserLogsFromFirebase();
+    // GAMIFICATION: Load user stats
+    if (window.gamification) {
+      await window.gamification.loadGameificationData(currentUser);
+    }
     showHome();
   }
 });
@@ -186,8 +190,13 @@ usernameInput.addEventListener('keypress', (e) => {
 });
 
 // Logout handler
-logoutBtn.addEventListener('click', () => {
+logoutBtn.addEventListener('click', async () => {
   if (confirm('Are you sure you want to logout?')) {
+    // GAMIFICATION: Save stats before logout
+    if (window.gamification && currentUser) {
+      await window.gamification.saveGameificationData(currentUser);
+    }
+    
     currentUser = null;
     localStorage.removeItem('currentUser');
     logs = [];
@@ -195,6 +204,7 @@ logoutBtn.addEventListener('click', () => {
     home.style.display = 'none';
     test.style.display = 'none';
     trendsView.style.display = 'none';
+    document.getElementById('badges-view').style.display = 'none';
     usernameInput.value = '';
   }
 });
@@ -203,6 +213,10 @@ function showHome() {
   loginScreen.style.display = 'none';
   home.style.display = 'block';
   currentUserDisplay.textContent = `👤 Logged in as: ${currentUser}`;
+  // GAMIFICATION: Update UI with user stats
+  if (window.gamification) {
+    window.gamification.updateGameificationUI();
+  }
 }
 
 // Populate grade dropdown from unique grades in words.json
@@ -484,19 +498,39 @@ meaningBtn.addEventListener('click', () => {
 submitBtn.addEventListener('click', () => {
   const attempt = attemptInput.value.trim().toLowerCase();
   const correct = attempt === currentWord.toLowerCase();
-  const timeSpent = Date.now() - wordStartTime; // Time spent on this word
+  const timeSpent = (Date.now() - wordStartTime) / 1000; // Time spent in seconds
   
   feedback.innerHTML = correct ? 'Correct! ✅🎉' : `Incorrect ❌ Correct: ${currentWord}`;
   test.classList.add(correct ? 'correct' : 'incorrect');
+  
+  // GAMIFICATION: Calculate points and update streak
+  let pointsEarned = 0;
+  if (correct) {
+    const difficulty = currentWords[currentIndex - 1]?.grade || 3; // 1-5 scale
+    pointsEarned = window.gamification ? 
+      window.gamification.calculatePointsForAnswer(true, difficulty, timeSpent) : 0;
+    
+    if (window.gamification) {
+      window.gamification.userStats.totalPoints += pointsEarned;
+      window.gamification.updateStreak(true);
+    }
+  } else {
+    // GAMIFICATION: Update streak on wrong answer
+    if (window.gamification) {
+      window.gamification.updateStreak(false);
+    }
+  }
   
   const logEntry = { 
     word: currentWord, 
     attempt, 
     correct, 
     timestamp: Date.now(),
-    timeSpent, // Time in milliseconds
+    timeSpent: timeSpent * 1000, // Time in milliseconds
+    pointsEarned: pointsEarned,
     sessionId,
-    user: currentUser 
+    user: currentUser,
+    grade: currentWords[currentIndex - 1]?.grade
   };
   
   logs.push(logEntry);
@@ -512,7 +546,39 @@ nextBtn.addEventListener('click', nextWord);
 // End session
 endBtn.addEventListener('click', endSession);
 
-function endSession() {
+async function endSession() {
+  // GAMIFICATION: Process session end
+  if (window.gamification) {
+    const sessionLogs = logs.filter(l => l.sessionId === sessionId);
+    const correct = sessionLogs.filter(l => l.correct).length;
+    const total = sessionLogs.length;
+    const totalTime = sessionLogs.reduce((sum, l) => sum + (l.timeSpent || 0), 0);
+    
+    const levelBefore = window.gamification.userStats.level;
+    const results = window.gamification.processSessionEnd({
+      correct: correct,
+      total: total,
+      totalTime: totalTime,
+      pointsEarned: sessionLogs.reduce((sum, l) => sum + (l.pointsEarned || 0), 0),
+      levelBefore: levelBefore
+    });
+
+    // Trigger confetti on level up
+    if (results.levelUp) {
+      window.gamification.triggerConfetti();
+      console.log(`🎉 Level up! You're now level ${window.gamification.userStats.level}`);
+    }
+
+    // Show new badges earned
+    results.newBadges.forEach(badge => {
+      console.log(`🏆 New Badge: ${badge.name}`);
+    });
+
+    // Save to Firebase
+    await window.gamification.saveGameificationData(currentUser);
+    window.gamification.updateGameificationUI();
+  }
+
   test.style.display = 'none';
   home.style.display = 'block';
   currentIndex = 0;
@@ -554,6 +620,27 @@ uploadInput.addEventListener('change', (e) => {
 
 // View trends
 trendsBtn.addEventListener('click', showTrends);
+
+// GAMIFICATION: View Badges/Achievements
+const badgesBtn = document.getElementById('view-badges');
+if (badgesBtn) {
+  badgesBtn.addEventListener('click', () => {
+    home.style.display = 'none';
+    document.getElementById('badges-view').style.display = 'block';
+    if (window.gamification) {
+      window.gamification.updateBadgePage();
+    }
+  });
+}
+
+// GAMIFICATION: Back from Badges
+const backFromBadgesBtn = document.getElementById('back-from-badges');
+if (backFromBadgesBtn) {
+  backFromBadgesBtn.addEventListener('click', () => {
+    document.getElementById('badges-view').style.display = 'none';
+    home.style.display = 'block';
+  });
+}
 
 async function showTrends() {
   home.style.display = 'none';
@@ -820,10 +907,67 @@ async function showTrends() {
       }
     }
   });
+
+  // GAMIFICATION: Load and display leaderboard
+  if (window.gamification && firebaseReady) {
+    try {
+      // Fetch all users' gamification data
+      const snapshot = await database.ref('users').once('value');
+      const allUsers = [];
+      snapshot.forEach(childSnapshot => {
+        const userData = childSnapshot.val();
+        if (userData.gamification) {
+          allUsers.push({
+            name: userData.gamification.username || childSnapshot.key,
+            points: userData.gamification.totalPoints || 0,
+            level: userData.gamification.level || 1
+          });
+        }
+      });
+      // Update both leaderboards
+      window.gamification.renderLeaderboard(allUsers);
+      // Also add to analytics leaderboard
+      const analyticsContainer = document.getElementById('analytics-leaderboard');
+      if (analyticsContainer) {
+        analyticsContainer.innerHTML = '';
+        const sortedUsers = [...allUsers].sort((a, b) => (b.points || 0) - (a.points || 0));
+        sortedUsers.slice(0, 10).forEach((user, idx) => {
+          const entry = document.createElement('div');
+          entry.className = 'leaderboard-entry';
+          
+          let rankIcon = idx + 1;
+          if (idx === 0) rankIcon = '🥇';
+          else if (idx === 1) rankIcon = '🥈';
+          else if (idx === 2) rankIcon = '🥉';
+
+          entry.innerHTML = `
+            <div class="rank">${rankIcon}</div>
+            <div class="username">${user.name}</div>
+            <div class="level">L${user.level}</div>
+            <div class="points">${(user.points || 0).toLocaleString()}pts</div>
+          `;
+          analyticsContainer.appendChild(entry);
+        });
+      }
+    } catch (error) {
+      console.error('Error loading leaderboard:', error);
+    }
+  }
 }
 
 // Back to home
 backHomeBtn.addEventListener('click', () => {
   trendsView.style.display = 'none';
   home.style.display = 'block';
+});
+
+// GAMIFICATION: Initialize gamification system on page load
+window.addEventListener('load', () => {
+  if (window.gamification) {
+    console.log('✅ Gamification system initialized');
+    console.log('🏆 Available badges:', Object.keys(window.gamification.BADGES).length);
+    console.log('Badges:', Object.keys(window.gamification.BADGES).map(b => window.gamification.BADGES[b].name).join(', '));
+  } else {
+    console.warn('⚠️ Gamification script not loaded - some features may be unavailable');
+  }
 });
