@@ -1,0 +1,19 @@
+{
+  "name": "spelling-bee-shared",
+  "version": "1.1.0",
+  "description": "Shared code and utilities for Spelling Bee web and mobile apps",
+  "main": "index.ts",
+  "types": "index.ts",
+  "keywords": [
+    "spelling",
+    "bee",
+    "shared",
+    "firebase",
+    "education"
+  ],
+  "author": "Sandeep Singarapu",
+  "license": "MIT",
+  "peerDependencies": {
+    "firebase": "^8.10.1"
+  }
+}
