@@ -276,13 +276,13 @@ function updateGameificationUI() {
   const pointsDisplay = document.getElementById('user-points');
   const streakDisplay = document.getElementById('user-streak');
 
-  if (levelDisplay) {
+  if (levelDisplay && !isNaN(userStats.level)) {
     levelDisplay.textContent = userStats.level;
   }
-  if (pointsDisplay) {
+  if (pointsDisplay && !isNaN(userStats.totalPoints)) {
     pointsDisplay.textContent = userStats.totalPoints.toLocaleString();
   }
-  if (streakDisplay) {
+  if (streakDisplay && !isNaN(userStats.dailyStreak)) {
     streakDisplay.textContent = userStats.dailyStreak;
   }
 }
@@ -381,10 +381,10 @@ function updateBadgePage() {
 
 // ========== FIREBASE PERSISTENCE ==========
 async function saveGameificationData(userId) {
-  if (!firebaseReady || !userId) return;
+  if (!window.firebaseReady || !userId || !window.database) return;
 
   try {
-    await database.ref(`users/${userId}/gamification`).set({
+    await window.database.ref(`users/${userId}/gamification`).set({
       level: userStats.level,
       totalPoints: userStats.totalPoints,
       badgesEarned: userStats.badgesEarned,
@@ -404,10 +404,10 @@ async function saveGameificationData(userId) {
 }
 
 async function loadGameificationData(userId) {
-  if (!firebaseReady || !userId) return;
+  if (!window.firebaseReady || !userId || !window.database) return;
 
   try {
-    const snapshot = await database.ref(`users/${userId}/gamification`).once('value');
+    const snapshot = await window.database.ref(`users/${userId}/gamification`).once('value');
     if (snapshot.exists()) {
       const data = snapshot.val();
       Object.assign(userStats, data);

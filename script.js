@@ -12,15 +12,19 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
+window.database = database; // Make available to gamification
 
 // Wait for Firebase to be ready
 let firebaseReady = false;
+window.firebaseReady = firebaseReady; // Make available to gamification
 database.ref('.info/connected').on('value', (snap) => {
   if (snap.val() === true) {
     firebaseReady = true;
+    window.firebaseReady = true;
     console.log('Firebase connected');
   } else {
     firebaseReady = false;
+    window.firebaseReady = false;
     console.log('Firebase disconnected');
   }
 });
@@ -505,12 +509,11 @@ submitBtn.addEventListener('click', () => {
   
   // GAMIFICATION: Calculate points and update streak
   let pointsEarned = 0;
-  if (correct) {
+  if (correct && window.gamification) {
     const difficulty = currentWords[currentIndex - 1]?.grade || 3; // 1-5 scale
-    pointsEarned = window.gamification ? 
-      window.gamification.calculatePointsForAnswer(true, difficulty, timeSpent) : 0;
+    pointsEarned = window.gamification.calculatePointsForAnswer(true, difficulty, timeSpent);
     
-    if (window.gamification) {
+    if (pointsEarned && !isNaN(pointsEarned)) {
       window.gamification.userStats.totalPoints += pointsEarned;
       window.gamification.updateStreak(true);
       // Update UI to reflect points immediately
@@ -520,11 +523,9 @@ submitBtn.addEventListener('click', () => {
         console.error('Error saving points:', err)
       );
     }
-  } else {
+  } else if (window.gamification) {
     // GAMIFICATION: Update streak on wrong answer
-    if (window.gamification) {
-      window.gamification.updateStreak(false);
-    }
+    window.gamification.updateStreak(false);
   }
   
   const logEntry = { 
