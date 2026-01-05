@@ -39,6 +39,8 @@ const startBtn = document.getElementById('start');
 const trendsBtn = document.getElementById('trends');
 const wordPrompt = document.getElementById('word-prompt');
 const listenBtn = document.getElementById('listen');
+const meaningBtn = document.getElementById('meaning-btn');
+const meaningDisplay = document.getElementById('meaning-display');
 const attemptInput = document.getElementById('attempt');
 const submitBtn = document.getElementById('submit');
 const nextBtn = document.getElementById('next');
@@ -306,6 +308,69 @@ function shuffleArray(array) {
   }
   return shuffled;
 }
+
+// Fetch word meaning from Free Dictionary API
+async function fetchAndShowMeaning(word) {
+  meaningDisplay.style.display = 'block';
+  meaningDisplay.innerHTML = '<p style="color: #667eea; font-style: italic;">Loading definition...</p>';
+  
+  try {
+    const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
+    
+    if (!response.ok) {
+      meaningDisplay.innerHTML = '<p style="color: #ef4444;">No definition found for this word.</p>';
+      return;
+    }
+    
+    const data = await response.json();
+    const entry = data[0];
+    
+    if (!entry.meanings || entry.meanings.length === 0) {
+      meaningDisplay.innerHTML = '<p style="color: #ef4444;">No definitions available.</p>';
+      return;
+    }
+    
+    // Get the first meaning
+    const meaning = entry.meanings[0];
+    const definition = meaning.definitions[0]?.definition || 'No definition available';
+    const example = meaning.definitions[0]?.example || '';
+    const partOfSpeech = meaning.partOfSpeech || '';
+    const phonetic = entry.phonetic || '';
+    
+    let html = `
+      <div style="font-weight: bold; color: #667eea; margin-bottom: 0.5rem;">${word.toUpperCase()}</div>
+    `;
+    
+    if (phonetic) {
+      html += `<div style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;"><em>${phonetic}</em></div>`;
+    }
+    
+    if (partOfSpeech) {
+      html += `<div style="font-size: 0.9rem; color: #764ba2; font-weight: 500; margin-bottom: 0.5rem;">${partOfSpeech}</div>`;
+    }
+    
+    html += `<div style="margin-bottom: 0.75rem;"><strong>Definition:</strong> ${definition}</div>`;
+    
+    if (example) {
+      html += `<div style="font-size: 0.9rem; color: #555; font-style: italic;"><strong>Example:</strong> "${example}"</div>`;
+    }
+    
+    html += `<button id="speak-meaning-btn" style="margin-top: 0.75rem; padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">🔊 Speak Definition</button>`;
+    
+    meaningDisplay.innerHTML = html;
+    
+    // Add event listener for speak meaning button
+    document.getElementById('speak-meaning-btn').addEventListener('click', () => {
+      const textToSpeak = `${word}. ${partOfSpeech}. ${definition}. Example: ${example || 'No example provided'}`;
+      speakWord(textToSpeak);
+    });
+    
+  } catch (error) {
+    console.error('Error fetching definition:', error);
+    meaningDisplay.innerHTML = '<p style="color: #ef4444;">Unable to fetch definition. Check your internet connection.</p>';
+  }
+}
+
 // Web Speech API - Use browser's native voices (completely free)
 // Version: 2.0 - Web Speech API (no external APIs)
 let voices = [];
@@ -408,6 +473,8 @@ function nextWord() {
   wordPrompt.textContent = 'Guess the spelling';
   attemptInput.value = '';
   feedback.innerHTML = '';
+  meaningDisplay.style.display = 'none'; // Hide previous meaning
+  meaningDisplay.innerHTML = '';
   test.classList.remove('correct', 'incorrect');
   nextBtn.style.display = 'none';
   submitBtn.style.display = 'inline-block';
@@ -418,6 +485,12 @@ function nextWord() {
 listenBtn.addEventListener('click', () => {
   console.log('Listen button clicked, speaking:', currentWord);
   speakWord(currentWord);
+});
+
+// Meaning button - fetch definition from API
+meaningBtn.addEventListener('click', () => {
+  console.log('Meaning button clicked for:', currentWord);
+  fetchAndShowMeaning(currentWord);
 });
 
 // Submit attempt
