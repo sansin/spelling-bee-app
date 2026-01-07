@@ -213,6 +213,28 @@ logoutBtn.addEventListener('click', async () => {
   }
 });
 
+// Logout button from analytics page
+const logoutBtnAnalytics = document.getElementById('logout-btn-analytics');
+if (logoutBtnAnalytics) {
+  logoutBtnAnalytics.addEventListener('click', async () => {
+    if (confirm('Are you sure you want to logout?')) {
+      // GAMIFICATION: Save stats before logout
+      if (window.gamification && currentUser) {
+        await window.gamification.saveGameificationData(currentUser);
+      }
+      
+      currentUser = null;
+      localStorage.removeItem('currentUser');
+      logs = [];
+      loginScreen.style.display = 'flex';
+      home.style.display = 'none';
+      test.style.display = 'none';
+      trendsView.style.display = 'none';
+      document.getElementById('badges-view').style.display = 'none';
+      usernameInput.value = '';
+    }
+  });
+}
 function showHome() {
   loginScreen.style.display = 'none';
   home.style.display = 'block';
@@ -676,6 +698,64 @@ async function showTrends() {
   const questionsPerSession = Math.round(total / sessions.length);
   document.getElementById('kpi-sessions').textContent = sessions.length;
   
+  // === LAST SESSION STATS ===
+  const lastSessionId = sessions[sessions.length - 1];
+  const lastSessionLogs = logs.filter(l => l.sessionId === lastSessionId);
+  const lastSessionCorrect = lastSessionLogs.filter(l => l.correct).length;
+  const lastSessionTotal = lastSessionLogs.length;
+  const lastSessionAccuracy = ((lastSessionCorrect / lastSessionTotal) * 100).toFixed(0);
+  const lastSessionTime = Math.round(lastSessionLogs.reduce((sum, l) => sum + (l.timeSpent || 0), 0) / 1000);
+  
+  const lastSessionHtml = `
+    <div class="session-stat">
+      <div class="session-stat-label">Questions</div>
+      <div class="session-stat-value">${lastSessionTotal}</div>
+    </div>
+    <div class="session-stat">
+      <div class="session-stat-label">Correct</div>
+      <div class="session-stat-value" style="color: #4CAF50;">${lastSessionCorrect}</div>
+    </div>
+    <div class="session-stat">
+      <div class="session-stat-label">Incorrect</div>
+      <div class="session-stat-value" style="color: #F44336;">${lastSessionTotal - lastSessionCorrect}</div>
+    </div>
+    <div class="session-stat">
+      <div class="session-stat-label">Accuracy</div>
+      <div class="session-stat-value">${lastSessionAccuracy}%</div>
+    </div>
+    <div class="session-stat">
+      <div class="session-stat-label">Time</div>
+      <div class="session-stat-value">${lastSessionTime}s</div>
+    </div>
+  `;
+  document.getElementById('last-session-content').innerHTML = lastSessionHtml;
+  
+  // === LAST SESSION WRONG WORDS ===
+  const lastSessionWrongWords = lastSessionLogs.filter(l => !l.correct).map(l => l.word);
+  let lastSessionWrongWordsHtml = '';
+  
+  if (lastSessionWrongWords.length > 0) {
+    lastSessionWrongWordsHtml = `
+      <div style="border-top: 2px solid #E3F2FD; padding-top: 12px;">
+        <h4 style="font-size: 14px; color: #1565C0; margin-bottom: 8px;">❌ Words to Practice</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          ${lastSessionWrongWords.map(word => `
+            <span style="
+              background: #FFEBEE;
+              color: #C62828;
+              padding: 6px 12px;
+              border-radius: 20px;
+              font-size: 13px;
+              font-weight: 600;
+            ">${word}</span>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  document.getElementById('last-session-wrong-words').innerHTML = lastSessionWrongWordsHtml;
+  
   // === TIME ANALYTICS (moved up to populate KPI) ===
   const totalTimeMs = logs.reduce((sum, l) => sum + (l.timeSpent || 0), 0);
   const avgTimePerWord = Math.round(totalTimeMs / total / 1000);
@@ -745,6 +825,33 @@ async function showTrends() {
   }).join('');
   
   document.getElementById('correct-words').innerHTML = correctWordsHtml || '<p style="padding: 1rem;">No correct words yet!</p>';
+  
+  // === WORDS STILL STRUGGLING (LATEST ATTEMPT) ===
+  // Get the latest attempt for each word across all sessions
+  const wordLatestAttempt = {};
+  logs.forEach(log => {
+    if (!wordLatestAttempt[log.word] || log.timestamp > wordLatestAttempt[log.word].timestamp) {
+      wordLatestAttempt[log.word] = log;
+    }
+  });
+  
+  // Filter words that were wrong in their latest attempt
+  const strugglingWords = Object.values(wordLatestAttempt)
+    .filter(log => !log.correct)
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 20);
+  
+  const strugglingWordsHtml = strugglingWords.map(word => {
+    const attemptDate = new Date(word.timestamp);
+    const dateStr = attemptDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const timeStr = attemptDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    return `<div class="word-item">
+      <div><strong>${word.word}</strong></div>
+      <div class="word-stat">${dateStr} at ${timeStr}</div>
+    </div>`;
+  }).join('');
+  
+  document.getElementById('struggling-words').innerHTML = strugglingWordsHtml || '<p style="padding: 1rem;">No struggling words yet!</p>';
   
   // === TIME ANALYTICS ===
   const fastestWord = logs.reduce((min, l) => l.timeSpent < (min.timeSpent || Infinity) ? l : min, {});

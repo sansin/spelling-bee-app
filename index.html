@@ -139,7 +139,12 @@
 
     <!-- Trends/Analytics Screen -->
     <div id="trends-view" style="display: none;">
-        <h1>📊 Your Analytics</h1>
+        <!-- Top Navigation Bar -->
+        <div class="analytics-top-bar">
+            <button id="back-home" class="btn-secondary">← Back</button>
+            <h1>Analytics</h1>
+            <button id="logout-btn-analytics" class="btn-danger">🚪 Logout</button>
+        </div>
         
         <!-- KPI Dashboard -->
         <div class="kpi-dashboard">
@@ -167,6 +172,15 @@
                 <div class="kpi-label">Avg Time/Word</div>
                 <div class="kpi-value" id="kpi-avgtime">0s</div>
             </div>
+        </div>
+
+        <!-- Last Session Stats Widget -->
+        <div class="last-session-widget">
+            <h3>📋 Last Session</h3>
+            <div class="last-session-content" id="last-session-content">
+                <p style="text-align: center; color: #999;">No previous session</p>
+            </div>
+            <div id="last-session-wrong-words" style="margin-top: 16px;"></div>
         </div>
 
         <!-- Charts Grid -->
@@ -216,16 +230,17 @@
                 <h3>⏱️ Time Analytics</h3>
                 <p id="time-stats" style="text-align: center; line-height: 1.8;"></p>
             </div>
+
+            <div class="data-card">
+                <h3>🚨 Words Still Struggling (Latest Attempt)</h3>
+                <div class="word-list" id="struggling-words"></div>
+            </div>
         </div>
 
         <!-- Leaderboard in Analytics -->
         <div class="data-card" style="margin-top: 32px;">
             <h3>🏅 Global Leaderboard</h3>
             <div id="analytics-leaderboard" class="leaderboard"></div>
-        </div>
-
-        <div class="button-group">
-            <button id="back-home">← Back to Home</button>
         </div>
     </div>
 
