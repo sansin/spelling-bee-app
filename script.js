@@ -472,8 +472,9 @@ function startSession() {
 }
 
 function nextWord() {
-  if (currentIndex >= currentWords.length) return endSession();
-  currentWord = currentWords[currentIndex].word;
+  currentIndex++;
+  if (currentIndex > currentWords.length) return endSession();
+  currentWord = currentWords[currentIndex - 1].word;
   wordStartTime = Date.now(); // Track when this word starts
   wordPrompt.textContent = 'Guess the spelling';
   attemptInput.value = '';
@@ -483,7 +484,6 @@ function nextWord() {
   test.classList.remove('correct', 'incorrect');
   nextBtn.style.display = 'none';
   submitBtn.style.display = 'inline-block';
-  currentIndex++;
 }
 
 // Listen button (TTS)
@@ -504,29 +504,12 @@ submitBtn.addEventListener('click', () => {
   const correct = attempt === currentWord.toLowerCase();
   const timeSpent = (Date.now() - wordStartTime) / 1000; // Time spent in seconds
   
+  console.log('Submit clicked - Attempt:', attempt, 'Current word:', currentWord, 'Correct:', correct);
+  
   feedback.innerHTML = correct ? 'Correct! ✅🎉' : `Incorrect ❌ Correct: ${currentWord}`;
   test.classList.add(correct ? 'correct' : 'incorrect');
   
-  // GAMIFICATION: Calculate points and update streak
-  let pointsEarned = 0;
-  if (correct && window.gamification) {
-    const difficulty = currentWords[currentIndex - 1]?.grade || 3; // 1-5 scale
-    pointsEarned = window.gamification.calculatePointsForAnswer(true, difficulty, timeSpent);
-    
-    if (pointsEarned && !isNaN(pointsEarned)) {
-      window.gamification.userStats.totalPoints += pointsEarned;
-      window.gamification.updateStreak(true);
-      // Update UI to reflect points immediately
-      window.gamification.updateGameificationUI();
-      // Save to Firebase so points persist
-      window.gamification.saveGameificationData(currentUser).catch(err => 
-        console.error('Error saving points:', err)
-      );
-    }
-  } else if (window.gamification) {
-    // GAMIFICATION: Update streak on wrong answer
-    window.gamification.updateStreak(false);
-  }
+  submitBtn.style.display = 'none';
   
   const logEntry = { 
     word: currentWord, 
@@ -534,7 +517,6 @@ submitBtn.addEventListener('click', () => {
     correct, 
     timestamp: Date.now(),
     timeSpent: timeSpent * 1000, // Time in milliseconds
-    pointsEarned: pointsEarned,
     sessionId,
     user: currentUser,
     grade: currentWords[currentIndex - 1]?.grade
@@ -543,8 +525,18 @@ submitBtn.addEventListener('click', () => {
   logs.push(logEntry);
   saveUserLogsToFirebase(logEntry); // Save to Firebase
   
-  submitBtn.style.display = 'none';
-  nextBtn.style.display = 'inline-block';
+  if (correct) {
+    // Auto-proceed to next question after 2 seconds for correct answers
+    console.log('Correct answer - auto-advancing in 2 seconds');
+    setTimeout(() => {
+      console.log('Timeout fired, calling nextWord()');
+      nextWord();
+    }, 2000);
+  } else {
+    // Show next button for wrong answers to let user review
+    console.log('Wrong answer - showing next button');
+    nextBtn.style.display = 'inline-block';
+  }
 });
 
 // Next button

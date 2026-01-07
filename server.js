@@ -5,6 +5,7 @@ const fetch = require('node-fetch');
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static(__dirname));
 
 const ELEVENLABS_API_KEY = 'sk_8180b150e0883442bfc5d6b5199fbb5cc6f596b5c740cd77';
 const ELEVENLABS_VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
