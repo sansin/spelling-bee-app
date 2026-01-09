@@ -66,6 +66,7 @@ let currentWord = '';
 let sessionId = Date.now();
 let wordStartTime = 0; // Track time for each word
 let sessionStartTime = Date.now(); // Track session start time
+let testMode = 'practice'; // 'practice' or 'test' - determines whether to cover all words
 
 // Check if user is already logged in
 window.addEventListener('DOMContentLoaded', async () => {
@@ -477,14 +478,29 @@ function speakWord(word) {
   speechSynthesis.speak(utterance);
 }
 
-// Start test test
+// Start practice (prioritized words)
 startBtn.addEventListener('click', () => {
+  testMode = 'practice';
   const grade = gradeSelect.value;
   currentWords = getPrioritizedWords(grade);
   if (currentWords.length === 0) return alert('No words available for this grade.');
   sessionId = Date.now();
   startSession();
 });
+
+// Start practice test (all words)
+const startTestBtn = document.getElementById('start-test');
+if (startTestBtn) {
+  startTestBtn.addEventListener('click', () => {
+    testMode = 'test';
+    const grade = gradeSelect.value;
+    // Get all words (not prioritized)
+    currentWords = words.filter(w => grade === 'all' || w.grade === grade);
+    if (currentWords.length === 0) return alert('No words available for this grade.');
+    sessionId = Date.now();
+    startSession();
+  });
+}
 
 
 function startSession() {
@@ -541,7 +557,8 @@ submitBtn.addEventListener('click', () => {
     timeSpent: timeSpent * 1000, // Time in milliseconds
     sessionId,
     user: currentUser,
-    grade: currentWords[currentIndex - 1]?.grade
+    grade: currentWords[currentIndex - 1]?.grade,
+    testMode: testMode  // Track whether this was practice or test mode
   };
   
   logs.push(logEntry);
@@ -642,6 +659,32 @@ uploadInput.addEventListener('change', (e) => {
 // View trends
 trendsBtn.addEventListener('click', showTrends);
 
+// Analytics tab switching
+const tabPractice = document.getElementById('tab-practice');
+const tabTest = document.getElementById('tab-test');
+const practiceContent = document.getElementById('practice-content');
+const testContent = document.getElementById('test-content');
+
+if (tabPractice && tabTest) {
+  tabPractice.addEventListener('click', () => {
+    practiceContent.style.display = 'block';
+    testContent.style.display = 'none';
+    tabPractice.style.background = '#667eea';
+    tabPractice.style.color = 'white';
+    tabTest.style.background = '#ccc';
+    tabTest.style.color = '#333';
+  });
+
+  tabTest.addEventListener('click', () => {
+    practiceContent.style.display = 'none';
+    testContent.style.display = 'block';
+    tabTest.style.background = '#667eea';
+    tabTest.style.color = 'white';
+    tabPractice.style.background = '#ccc';
+    tabPractice.style.color = '#333';
+  });
+}
+
 // GAMIFICATION: View Badges/Achievements
 const badgesBtn = document.getElementById('view-badges');
 if (badgesBtn) {
@@ -670,10 +713,13 @@ async function showTrends() {
   // Load data from Firebase first
   await loadUserLogsFromFirebase();
   
-  console.log('Showing trends. Current logs:', logs.length);
+  // Filter logs to only current user's practice sessions (not test mode)
+  const practiceLogs = logs.filter(l => l.user === currentUser && (!l.testMode || l.testMode === 'practice'));
   
-  if (logs.length === 0) {
-    accuracyP.textContent = 'No data yet. Start a test to see your trends!';
+  console.log('Showing trends. Current user practice logs:', practiceLogs.length);
+  
+  if (practiceLogs.length === 0) {
+    accuracyP.textContent = 'No data yet. Start a practice to see your trends!';
     document.getElementById('session-stats').textContent = '';
     document.getElementById('wrong-words').innerHTML = '';
     document.getElementById('correct-words').innerHTML = '';
@@ -682,8 +728,8 @@ async function showTrends() {
   }
   
   // === ACCURACY STATS ===
-  const total = logs.length;
-  const correctCount = logs.filter(l => l.correct).length;
+  const total = practiceLogs.length;
+  const correctCount = practiceLogs.filter(l => l.correct).length;
   const incorrectCount = total - correctCount;
   const accuracy = ((correctCount / total) * 100).toFixed(2);
   accuracyP.textContent = `${accuracy}%`;
@@ -694,13 +740,13 @@ async function showTrends() {
   document.getElementById('kpi-incorrect').textContent = incorrectCount;
   
   // === SESSION STATS ===
-  const sessions = [...new Set(logs.map(l => l.sessionId))];
+  const sessions = [...new Set(practiceLogs.map(l => l.sessionId))];
   const questionsPerSession = Math.round(total / sessions.length);
   document.getElementById('kpi-sessions').textContent = sessions.length;
   
   // === LAST SESSION STATS ===
   const lastSessionId = sessions[sessions.length - 1];
-  const lastSessionLogs = logs.filter(l => l.sessionId === lastSessionId);
+  const lastSessionLogs = practiceLogs.filter(l => l.sessionId === lastSessionId);
   const lastSessionCorrect = lastSessionLogs.filter(l => l.correct).length;
   const lastSessionTotal = lastSessionLogs.length;
   const lastSessionAccuracy = ((lastSessionCorrect / lastSessionTotal) * 100).toFixed(0);
@@ -757,13 +803,13 @@ async function showTrends() {
   document.getElementById('last-session-wrong-words').innerHTML = lastSessionWrongWordsHtml;
   
   // === TIME ANALYTICS (moved up to populate KPI) ===
-  const totalTimeMs = logs.reduce((sum, l) => sum + (l.timeSpent || 0), 0);
+  const totalTimeMs = practiceLogs.reduce((sum, l) => sum + (l.timeSpent || 0), 0);
   const avgTimePerWord = Math.round(totalTimeMs / total / 1000);
   document.getElementById('kpi-avgtime').textContent = avgTimePerWord + 's';
   
   // === WRONG WORDS ANALYTICS ===
   const wrongWordStats = {};
-  logs.forEach(log => {
+  practiceLogs.forEach(log => {
     if (!log.correct) {
       if (!wrongWordStats[log.word]) {
         wrongWordStats[log.word] = { wrong: 0, correct: 0, timesAsked: 0, totalTime: 0 };
@@ -775,7 +821,7 @@ async function showTrends() {
   });
   
   // Also count correct attempts for success rate
-  logs.forEach(log => {
+  practiceLogs.forEach(log => {
     if (!wrongWordStats[log.word]) {
       wrongWordStats[log.word] = { wrong: 0, correct: 0, timesAsked: 0, totalTime: 0 };
     }
@@ -803,7 +849,7 @@ async function showTrends() {
   
   // === CORRECT WORDS ANALYTICS ===
   const correctWordStats = {};
-  logs.forEach(log => {
+  practiceLogs.forEach(log => {
     if (log.correct) {
       if (!correctWordStats[log.word]) {
         correctWordStats[log.word] = { count: 0, totalTime: 0 };
@@ -829,7 +875,7 @@ async function showTrends() {
   // === WORDS STILL STRUGGLING (LATEST ATTEMPT) ===
   // Get the latest attempt for each word across all sessions
   const wordLatestAttempt = {};
-  logs.forEach(log => {
+  practiceLogs.forEach(log => {
     if (!wordLatestAttempt[log.word] || log.timestamp > wordLatestAttempt[log.word].timestamp) {
       wordLatestAttempt[log.word] = log;
     }
@@ -854,8 +900,8 @@ async function showTrends() {
   document.getElementById('struggling-words').innerHTML = strugglingWordsHtml || '<p style="padding: 1rem;">No struggling words yet!</p>';
   
   // === TIME ANALYTICS ===
-  const fastestWord = logs.reduce((min, l) => l.timeSpent < (min.timeSpent || Infinity) ? l : min, {});
-  const slowestWord = logs.reduce((max, l) => l.timeSpent > (max.timeSpent || 0) ? l : max, {});
+  const fastestWord = practiceLogs.reduce((min, l) => l.timeSpent < (min.timeSpent || Infinity) ? l : min, {});
+  const slowestWord = practiceLogs.reduce((max, l) => l.timeSpent > (max.timeSpent || 0) ? l : max, {});
   
   document.getElementById('time-stats').innerHTML = 
     `<strong>Total Time:</strong> ${Math.round(totalTimeMs / 60000)}m<br>` +
@@ -865,7 +911,7 @@ async function showTrends() {
   
   // === SESSION ACCURACY CHART ===
   const sessionAcc = sessions.map(sid => {
-    const sLogs = logs.filter(l => l.sessionId === sid);
+    const sLogs = practiceLogs.filter(l => l.sessionId === sid);
     return (sLogs.filter(l => l.correct).length / sLogs.length) * 100;
   });
   
@@ -938,7 +984,7 @@ async function showTrends() {
   }
   
   const gradeStats = {};
-  logs.forEach(log => {
+  practiceLogs.forEach(log => {
     const word = words.find(w => w.word === log.word);
     const grade = word ? word.grade : 'Unknown';
     if (!gradeStats[grade]) {
@@ -983,7 +1029,7 @@ async function showTrends() {
   }
   
   const difficultyDistribution = {};
-  logs.forEach(log => {
+  practiceLogs.forEach(log => {
     const word = words.find(w => w.word === log.word);
     const grade = word ? word.grade : 'Unknown';
     difficultyDistribution[grade] = (difficultyDistribution[grade] || 0) + 1;
@@ -1059,6 +1105,344 @@ async function showTrends() {
       console.error('Error loading leaderboard:', error);
     }
   }
+
+  // Load test analytics
+  await showTestAnalytics();
+}
+
+// === PRACTICE TEST ANALYTICS ===
+async function showTestAnalytics() {
+  // Filter logs for test mode AND current user only
+  const testLogs = logs.filter(l => l.testMode === 'test' && l.user === currentUser);
+  
+  if (testLogs.length === 0) {
+    document.getElementById('test-accuracy').textContent = 'No data yet';
+    document.getElementById('test-total').textContent = '0';
+    document.getElementById('test-correct').textContent = '0';
+    document.getElementById('test-incorrect').textContent = '0';
+    document.getElementById('test-sessions').textContent = '0';
+    document.getElementById('test-coverage').textContent = '0%';
+    return;
+  }
+
+  // === TEST ACCURACY STATS ===
+  const testTotal = testLogs.length;
+  const testCorrect = testLogs.filter(l => l.correct).length;
+  const testIncorrect = testTotal - testCorrect;
+  const testAccuracy = ((testCorrect / testTotal) * 100).toFixed(2);
+  document.getElementById('test-accuracy').textContent = `${testAccuracy}%`;
+
+  // === POPULATE TEST KPI CARDS ===
+  document.getElementById('test-total').textContent = testTotal;
+  document.getElementById('test-correct').textContent = testCorrect;
+  document.getElementById('test-incorrect').textContent = testIncorrect;
+
+  // === TEST SESSIONS ===
+  const testSessions = [...new Set(testLogs.map(l => l.sessionId))];
+  document.getElementById('test-sessions').textContent = testSessions.length;
+
+  // === WORD COVERAGE ===
+  const uniqueWordsInTests = new Set(testLogs.map(l => l.word)).size;
+  const totalWords = words.length;
+  const coverage = ((uniqueWordsInTests / totalWords) * 100).toFixed(1);
+  document.getElementById('test-coverage').textContent = coverage + '%';
+
+  // === LATEST TEST SESSION ===
+  const lastTestSessionId = testSessions[testSessions.length - 1];
+  const lastTestLogs = testLogs.filter(l => l.sessionId === lastTestSessionId);
+  const lastTestCorrect = lastTestLogs.filter(l => l.correct).length;
+  const lastTestTotal = lastTestLogs.length;
+  const lastTestAccuracy = ((lastTestCorrect / lastTestTotal) * 100).toFixed(0);
+  const lastTestTime = Math.round(lastTestLogs.reduce((sum, l) => sum + (l.timeSpent || 0), 0) / 1000);
+
+  const lastTestHtml = `
+    <div class="session-stat">
+      <div class="session-stat-label">Words Tested</div>
+      <div class="session-stat-value">${lastTestTotal}</div>
+    </div>
+    <div class="session-stat">
+      <div class="session-stat-label">Correct</div>
+      <div class="session-stat-value" style="color: #4CAF50;">${lastTestCorrect}</div>
+    </div>
+    <div class="session-stat">
+      <div class="session-stat-label">Incorrect</div>
+      <div class="session-stat-value" style="color: #F44336;">${lastTestTotal - lastTestCorrect}</div>
+    </div>
+    <div class="session-stat">
+      <div class="session-stat-label">Accuracy</div>
+      <div class="session-stat-value">${lastTestAccuracy}%</div>
+    </div>
+    <div class="session-stat">
+      <div class="session-stat-label">Time</div>
+      <div class="session-stat-value">${lastTestTime}s</div>
+    </div>
+  `;
+  document.getElementById('last-test-content').innerHTML = lastTestHtml;
+
+  // === LAST TEST WRONG WORDS ===
+  const lastTestWrongWords = lastTestLogs.filter(l => !l.correct).map(l => l.word);
+  let lastTestWrongWordsHtml = '';
+
+  if (lastTestWrongWords.length > 0) {
+    lastTestWrongWordsHtml = `
+      <div style="border-top: 2px solid #E3F2FD; padding-top: 12px;">
+        <h4 style="font-size: 14px; color: #1565C0; margin-bottom: 8px;">❌ Words to Review</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          ${lastTestWrongWords.map(word => `
+            <span style="
+              background: #FFEBEE;
+              color: #C62828;
+              padding: 6px 12px;
+              border-radius: 20px;
+              font-size: 13px;
+              font-weight: 600;
+            ">${word}</span>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  document.getElementById('last-test-wrong-words').innerHTML = lastTestWrongWordsHtml;
+
+  // === TIME ANALYTICS ===
+  const totalTestTimeMs = testLogs.reduce((sum, l) => sum + (l.timeSpent || 0), 0);
+  const avgTestTimePerWord = Math.round(totalTestTimeMs / testTotal / 1000);
+  const fastestTestWord = testLogs.reduce((min, l) => l.timeSpent < (min.timeSpent || Infinity) ? l : min, {});
+  const slowestTestWord = testLogs.reduce((max, l) => l.timeSpent > (max.timeSpent || 0) ? l : max, {});
+
+  document.getElementById('test-time-stats').innerHTML = 
+    `<strong>Total Time:</strong> ${Math.round(totalTestTimeMs / 60000)}m<br>` +
+    `<strong>Average/Word:</strong> ${avgTestTimePerWord}s<br>` +
+    `<strong>Fastest:</strong> ${fastestTestWord.word || 'N/A'} (${fastestTestWord.timeSpent ? Math.round(fastestTestWord.timeSpent / 1000) : 0}s)<br>` +
+    `<strong>Slowest:</strong> ${slowestTestWord.word || 'N/A'} (${slowestTestWord.timeSpent ? Math.round(slowestTestWord.timeSpent / 1000) : 0}s)`;
+
+  // === TEST WRONG WORDS ===
+  const testWrongWordStats = {};
+  testLogs.forEach(log => {
+    if (!testWrongWordStats[log.word]) {
+      testWrongWordStats[log.word] = { wrong: 0, correct: 0, timesAsked: 0 };
+    }
+    if (log.correct) {
+      testWrongWordStats[log.word].correct++;
+    } else {
+      testWrongWordStats[log.word].wrong++;
+    }
+    testWrongWordStats[log.word].timesAsked++;
+  });
+
+  const sortedTestWrongWords = Object.entries(testWrongWordStats)
+    .filter(([_, stats]) => stats.wrong > 0)
+    .sort((a, b) => b[1].wrong - a[1].wrong)
+    .slice(0, 10);
+
+  const testWrongWordsHtml = sortedTestWrongWords.map(([word, stats]) => {
+    const successRate = ((stats.correct / stats.timesAsked) * 100).toFixed(0);
+    return `<div class="word-item">
+      <div><strong>${word}</strong></div>
+      <div class="word-stat">${stats.correct}/${stats.timesAsked} correct (${successRate}%)</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('test-wrong-words').innerHTML = testWrongWordsHtml || '<p style="padding: 1rem;">Perfect! All words correct! 🎉</p>';
+
+  // === TEST CORRECT WORDS ===
+  const testCorrectWordStats = {};
+  testLogs.forEach(log => {
+    if (log.correct) {
+      if (!testCorrectWordStats[log.word]) {
+        testCorrectWordStats[log.word] = { count: 0 };
+      }
+      testCorrectWordStats[log.word].count++;
+    }
+  });
+
+  const sortedTestCorrectWords = Object.entries(testCorrectWordStats)
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 10);
+
+  const testCorrectWordsHtml = sortedTestCorrectWords.map(([word, stats]) => {
+    return `<div class="word-item">
+      <div><strong>${word}</strong></div>
+      <div class="word-stat">✅ Correct in ${stats.count} test(s)</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('test-correct-words').innerHTML = testCorrectWordsHtml || '<p style="padding: 1rem;">No test results yet</p>';
+
+  // === WORD COVERAGE REPORT ===
+  const testedWords = new Set(testLogs.map(l => l.word));
+  const notTestedWords = words.filter(w => !testedWords.has(w.word));
+  
+  let coverageReportHtml = `<div style="font-size: 14px; margin-bottom: 10px;"><strong>Tested: ${testedWords.size}/${words.length} words (${coverage}%)</strong></div>`;
+  
+  if (notTestedWords.length > 0 && notTestedWords.length <= 20) {
+    coverageReportHtml += `<div style="padding: 10px; background: #fff3cd; border-radius: 5px; margin-bottom: 10px;"><strong>📍 Not Yet Tested (${notTestedWords.length}):</strong><br>`;
+    coverageReportHtml += notTestedWords.map(w => w.word).join(', ');
+    coverageReportHtml += '</div>';
+  } else if (notTestedWords.length > 20) {
+    coverageReportHtml += `<div style="padding: 10px; background: #fff3cd; border-radius: 5px;"><strong>📍 Remaining Words:</strong> ${notTestedWords.length} words not yet tested</div>`;
+  }
+
+  document.getElementById('test-coverage-report').innerHTML = coverageReportHtml;
+
+  // === TEST SESSION ACCURACY CHART ===
+  const testSessionAcc = testSessions.map(sid => {
+    const sLogs = testLogs.filter(l => l.sessionId === sid);
+    return (sLogs.filter(l => l.correct).length / sLogs.length) * 100;
+  });
+
+  if (window.testAccuracyChart instanceof Chart) {
+    window.testAccuracyChart.destroy();
+  }
+
+  const testAccuracyCtx = document.getElementById('test-accuracy-chart').getContext('2d');
+  window.testAccuracyChart = new Chart(testAccuracyCtx, {
+    type: 'line',
+    data: {
+      labels: testSessions.map((_, i) => `Test ${i+1}`),
+      datasets: [{ 
+        label: 'Accuracy %', 
+        data: testSessionAcc, 
+        borderColor: '#f59e0b', 
+        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+        tension: 0.4,
+        fill: true,
+        borderWidth: 2,
+        pointRadius: 5,
+        pointBackgroundColor: '#f59e0b'
+      }]
+    },
+    options: { 
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { 
+        y: { 
+          beginAtZero: true, 
+          max: 100,
+          ticks: { callback: v => v + '%' }
+        } 
+      },
+      plugins: {
+        legend: { display: true }
+      }
+    }
+  });
+
+  // === TEST CORRECT vs INCORRECT CHART ===
+  if (window.testCorrectIncorrectChart instanceof Chart) {
+    window.testCorrectIncorrectChart.destroy();
+  }
+
+  const testCorrectIncorrectCtx = document.getElementById('test-correct-incorrect-chart').getContext('2d');
+  window.testCorrectIncorrectChart = new Chart(testCorrectIncorrectCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Correct', 'Incorrect'],
+      datasets: [{
+        data: [testCorrect, testTotal - testCorrect],
+        backgroundColor: ['#10b981', '#ef4444'],
+        borderColor: ['#059669', '#dc2626'],
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' }
+      }
+    }
+  });
+
+  // === TEST GRADE PERFORMANCE CHART ===
+  if (window.testGradePerformanceChart instanceof Chart) {
+    window.testGradePerformanceChart.destroy();
+  }
+
+  const testGradeStats = {};
+  testLogs.forEach(log => {
+    const word = words.find(w => w.word === log.word);
+    const grade = word ? word.grade : 'Unknown';
+    if (!testGradeStats[grade]) {
+      testGradeStats[grade] = { correct: 0, total: 0 };
+    }
+    testGradeStats[grade].total++;
+    if (log.correct) testGradeStats[grade].correct++;
+  });
+
+  const testGradeLabels = Object.keys(testGradeStats).sort((a, b) => {
+    const aNum = parseInt(a);
+    const bNum = parseInt(b);
+    if (isNaN(aNum) && isNaN(bNum)) return a.localeCompare(b);
+    if (isNaN(aNum)) return 1;
+    if (isNaN(bNum)) return -1;
+    return aNum - bNum;
+  });
+  const testGradeAccuracy = testGradeLabels.map(g => ((testGradeStats[g].correct / testGradeStats[g].total) * 100).toFixed(1));
+
+  const testGradePerformanceCtx = document.getElementById('test-grade-performance-chart').getContext('2d');
+  window.testGradePerformanceChart = new Chart(testGradePerformanceCtx, {
+    type: 'bar',
+    data: {
+      labels: testGradeLabels,
+      datasets: [{
+        label: 'Accuracy %',
+        data: testGradeAccuracy,
+        backgroundColor: ['#667eea', '#764ba2', '#10b981', '#f59e0b', '#ef4444'],
+        borderColor: ['#5568d3', '#6b3a8f', '#059669', '#d97706', '#dc2626'],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { beginAtZero: true, max: 100 }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+
+  // === TEST DIFFICULTY DISTRIBUTION CHART ===
+  if (window.testDifficultyChart instanceof Chart) {
+    window.testDifficultyChart.destroy();
+  }
+
+  const testDifficultyDistribution = {};
+  testLogs.forEach(log => {
+    const word = words.find(w => w.word === log.word);
+    const grade = word ? word.grade : 'Unknown';
+    testDifficultyDistribution[grade] = (testDifficultyDistribution[grade] || 0) + 1;
+  });
+
+  const testDiffLabels = Object.keys(testDifficultyDistribution);
+  const testDiffValues = Object.values(testDifficultyDistribution);
+  const testColors = ['#667eea', '#764ba2', '#10b981', '#f59e0b', '#ef4444'];
+
+  const testDifficultyCtx = document.getElementById('test-difficulty-chart').getContext('2d');
+  window.testDifficultyChart = new Chart(testDifficultyCtx, {
+    type: 'pie',
+    data: {
+      labels: testDiffLabels,
+      datasets: [{
+        data: testDiffValues,
+        backgroundColor: testColors.slice(0, testDiffLabels.length),
+        borderColor: 'white',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' }
+      }
+    }
+  });
 }
 
 // Back to home

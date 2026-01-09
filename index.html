@@ -63,7 +63,8 @@
             </div>
 
             <div class="button-group">
-                <button id="start">▶️ Start Test</button>
+                <button id="start">▶️ Start Practice</button>
+                <button id="start-test">📋 Practice Test (All Words)</button>
                 <button id="view-badges">🏆 Badges & Achievements</button>
                 <button id="trends">📊 View Analytics</button>
                 <button id="logout-btn">🚪 Logout</button>
@@ -145,7 +146,15 @@
             <h1>Analytics</h1>
             <button id="logout-btn-analytics" class="btn-danger">🚪 Logout</button>
         </div>
+
+        <!-- Analytics Tabs -->
+        <div style="display: flex; gap: 10px; padding: 15px; border-bottom: 2px solid #e0e0e0; background: #f9f9f9;">
+            <button id="tab-practice" class="analytics-tab active" style="padding: 10px 20px; border: none; background: #667eea; color: white; border-radius: 5px; cursor: pointer; font-weight: 600;">📊 Practice Analytics</button>
+            <button id="tab-test" class="analytics-tab" style="padding: 10px 20px; border: none; background: #ccc; color: #333; border-radius: 5px; cursor: pointer; font-weight: 600;">📋 Practice Test Analytics</button>
+        </div>
         
+        <!-- Practice Analytics Content -->
+        <div id="practice-content" class="analytics-content" style="display: block;">
         <!-- KPI Dashboard -->
         <div class="kpi-dashboard">
             <div class="kpi-card">
@@ -242,6 +251,101 @@
             <h3>🏅 Global Leaderboard</h3>
             <div id="analytics-leaderboard" class="leaderboard"></div>
         </div>
+        </div><!-- End practice-content -->
+
+        <!-- Practice Test Analytics Content -->
+        <div id="test-content" class="analytics-content" style="display: none;">
+        <!-- Test KPI Dashboard -->
+        <div class="kpi-dashboard">
+            <div class="kpi-card">
+                <div class="kpi-label">Test Accuracy Rate</div>
+                <div class="kpi-value" id="test-accuracy">-</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Total Words Tested</div>
+                <div class="kpi-value" id="test-total">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Correct</div>
+                <div class="kpi-value kpi-success" id="test-correct">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Incorrect</div>
+                <div class="kpi-value kpi-danger" id="test-incorrect">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Test Sessions</div>
+                <div class="kpi-value" id="test-sessions">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Coverage</div>
+                <div class="kpi-value" id="test-coverage">0%</div>
+            </div>
+        </div>
+
+        <!-- Last Test Stats Widget -->
+        <div class="last-session-widget">
+            <h3>📋 Latest Practice Test</h3>
+            <div class="last-session-content" id="last-test-content">
+                <p style="text-align: center; color: #999;">No practice test completed yet</p>
+            </div>
+            <div id="last-test-wrong-words" style="margin-top: 16px;"></div>
+        </div>
+
+        <!-- Test Charts Grid -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>Test Sessions Trend</h3>
+                <div class="chart-container">
+                    <canvas id="test-accuracy-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h3>Test Results Distribution</h3>
+                <div class="chart-container small">
+                    <canvas id="test-correct-incorrect-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h3>Test Performance by Grade</h3>
+                <div class="chart-container">
+                    <canvas id="test-grade-performance-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h3>Words Distribution Tested</h3>
+                <div class="chart-container small">
+                    <canvas id="test-difficulty-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Data Tables -->
+        <div class="data-grid">
+            <div class="data-card">
+                <h3>❌ Most Challenging Words (Tests)</h3>
+                <div class="word-list" id="test-wrong-words"></div>
+            </div>
+
+            <div class="data-card">
+                <h3>✅ Perfect Score Words (Tests)</h3>
+                <div class="word-list" id="test-correct-words"></div>
+            </div>
+
+            <div class="data-card">
+                <h3>⏱️ Test Time Analytics</h3>
+                <p id="test-time-stats" style="text-align: center; line-height: 1.8;"></p>
+            </div>
+
+            <div class="data-card">
+                <h3>📊 Word Coverage Report</h3>
+                <div class="word-list" id="test-coverage-report"></div>
+            </div>
+        </div>
+        </div><!-- End test-content -->
     </div>
 
     <!-- Confetti Container (for celebrations) -->
