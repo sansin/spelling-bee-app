@@ -168,16 +168,22 @@ function saveUserLogsToFirebase(logEntry) {
 // Login handler
 loginBtn.addEventListener('click', async () => {
   console.log('Login button clicked');
-  const username = usernameInput.value.trim();
-  console.log('Username entered:', username);
+  const rawUsername = usernameInput.value.trim();
+  console.log('Username entered:', rawUsername);
   
-  if (!username) {
-    alert('Please enter your name');
+  // SECURITY: Validate username format and content
+  const usernameValidation = window.securityContext?.validateUsername ? 
+    window.securityContext.validateUsername(rawUsername) : 
+    { valid: !!rawUsername, sanitized: rawUsername };
+  
+  if (!usernameValidation.valid) {
+    alert(usernameValidation.error || 'Please enter a valid username');
     return;
   }
-  currentUser = username;
+  
+  currentUser = usernameValidation.sanitized;
   console.log('Current user set to:', currentUser);
-  localStorage.setItem('currentUser', username);
+  localStorage.setItem('currentUser', currentUser);
   console.log('User saved to localStorage');
   
   await loadUserLogsFromFirebase();
@@ -361,6 +367,18 @@ async function fetchAndShowMeaning(word) {
     }
     
     const data = await response.json();
+    
+    // SECURITY: Validate API response structure
+    const validation = window.securityContext?.validateDictionaryAPIResponse ? 
+      window.securityContext.validateDictionaryAPIResponse(data) : 
+      { valid: !!data && Array.isArray(data) };
+    
+    if (!validation?.valid) {
+      console.warn('Invalid API response:', validation?.error);
+      alert('Invalid definition format received.');
+      return;
+    }
+    
     const entry = data[0];
     
     if (!entry.meanings || entry.meanings.length === 0) {
@@ -387,18 +405,24 @@ async function fetchAndShowMeaning(word) {
     const displayDefinition = maskWord(definition, word);
     const displayExample = maskWord(example, word);
     
-    // Show the definition on screen
+    // Show the definition on screen with HTML escaping
     meaningDisplay.style.display = 'block';
     let html = '';
     
     if (partOfSpeech) {
-      html += `<div style="font-size: 0.9rem; color: #764ba2; font-weight: 500; margin-bottom: 0.5rem;">${partOfSpeech}</div>`;
+      // SECURITY: Escape HTML to prevent XSS
+      const escapedPoS = window.securityContext?.escapeForDisplay(partOfSpeech) || partOfSpeech;
+      html += `<div style="font-size: 0.9rem; color: #764ba2; font-weight: 500; margin-bottom: 0.5rem;">${escapedPoS}</div>`;
     }
     
-    html += `<div style="margin-bottom: 0.75rem;"><strong>Definition:</strong> ${displayDefinition}</div>`;
+    // SECURITY: Escape definition and example
+    const escapedDef = window.securityContext?.escapeForDisplay(displayDefinition) || displayDefinition;
+    const escapedEx = window.securityContext?.escapeForDisplay(displayExample) || displayExample;
     
-    if (displayExample) {
-      html += `<div style="font-size: 0.9rem; color: #555; font-style: italic;"><strong>Example:</strong> "${displayExample}"</div>`;
+    html += `<div style="margin-bottom: 0.75rem;"><strong>Definition:</strong> ${escapedDef}</div>`;
+    
+    if (escapedEx) {
+      html += `<div style="font-size: 0.9rem; color: #555; font-style: italic;"><strong>Example:</strong> "${escapedEx}"</div>`;
     }
     
     meaningDisplay.innerHTML = html;
@@ -408,7 +432,11 @@ async function fetchAndShowMeaning(word) {
     
   } catch (error) {
     console.error('Error fetching definition:', error);
-    alert('Unable to fetch definition. Check your internet connection.');
+    // SECURITY: Sanitize error message before showing to user
+    const sanitizedError = window.securityContext?.sanitizeError ? 
+      window.securityContext.sanitizeError(error) :
+      'Unable to fetch definition. Check your internet connection.';
+    alert(sanitizedError);
   }
 }
 
@@ -671,10 +699,12 @@ meaningBtn.addEventListener('click', () => {
 
 // Submit attempt logic
 function submitAttempt() {
-  const attempt = attemptInput.value.trim().toLowerCase();
+  const rawAttempt = attemptInput.value.trim().toLowerCase();
   
-  // Check if input is empty
-  if (attempt === '') {
+  // SECURITY: Validate answer length and content
+  const answerValidation = window.securityContext?.validateAnswer(rawAttempt);
+  
+  if (!answerValidation?.valid) {
     const confirmed = confirm('You haven\'t typed anything yet. Are you sure you want to skip this word?');
     if (!confirmed) {
       attemptInput.focus();
@@ -682,12 +712,24 @@ function submitAttempt() {
     }
   }
   
+  // SECURITY: Check rate limit to prevent spam submissions
+  const canSubmit = window.securityContext?.checkRateLimit(currentUser);
+  if (!canSubmit) {
+    feedback.innerHTML = 'Please wait before submitting again.';
+    feedback.style.color = '#ff6b6b';
+    setTimeout(() => {
+      feedback.innerHTML = '';
+    }, 2000);
+    return;
+  }
+  
+  const attempt = answerValidation?.trimmed || rawAttempt;
   const correct = attempt === currentWord.toLowerCase();
   const timeSpent = (Date.now() - wordStartTime) / 1000; // Time spent in seconds
   
   console.log('Submit clicked - Attempt:', attempt, 'Current word:', currentWord, 'Correct:', correct);
   
-  feedback.innerHTML = correct ? 'Correct! ✅🎉' : `Incorrect ❌ Correct: ${currentWord}`;
+  feedback.innerHTML = correct ? 'Correct! ✅🎉' : `Incorrect ❌ Correct: ${window.securityContext?.escapeForDisplay(currentWord) || currentWord}`;
   test.classList.add(correct ? 'correct' : 'incorrect');
   
   submitBtn.style.display = 'none';
@@ -703,6 +745,15 @@ function submitAttempt() {
     grade: currentWords[currentIndex - 1]?.grade,
     testMode: testMode  // Track whether this was practice or test mode
   };
+  
+  // SECURITY: Validate and queue log entry before Firebase sync
+  const logValidation = window.securityContext?.validateAndQueueLog(logEntry);
+  if (logValidation && !logValidation.valid) {
+    console.error('Log validation failed:', logValidation.error);
+    feedback.innerHTML = 'Failed to record answer. Please try again.';
+    submitBtn.style.display = 'inline-block';
+    return;
+  }
   
   logs.push(logEntry);
   saveUserLogsToFirebase(logEntry); // Save to Firebase
