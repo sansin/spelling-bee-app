@@ -374,6 +374,19 @@ async function fetchAndShowMeaning(word) {
     const example = meaning.definitions[0]?.example || '';
     const partOfSpeech = meaning.partOfSpeech || '';
     
+    // Helper function to mask the word in text
+    function maskWord(text, word) {
+      if (!text || !word) return text;
+      // Create a regex that matches the word (case-insensitive, whole word only)
+      const regex = new RegExp(`\\b${word}\\b`, 'gi');
+      // Replace with blanks (underscores)
+      return text.replace(regex, '___');
+    }
+    
+    // Mask the word in definition and example for display
+    const displayDefinition = maskWord(definition, word);
+    const displayExample = maskWord(example, word);
+    
     // Show the definition on screen
     meaningDisplay.style.display = 'block';
     let html = '';
@@ -382,15 +395,15 @@ async function fetchAndShowMeaning(word) {
       html += `<div style="font-size: 0.9rem; color: #764ba2; font-weight: 500; margin-bottom: 0.5rem;">${partOfSpeech}</div>`;
     }
     
-    html += `<div style="margin-bottom: 0.75rem;"><strong>Definition:</strong> ${definition}</div>`;
+    html += `<div style="margin-bottom: 0.75rem;"><strong>Definition:</strong> ${displayDefinition}</div>`;
     
-    if (example) {
-      html += `<div style="font-size: 0.9rem; color: #555; font-style: italic;"><strong>Example:</strong> "${example}"</div>`;
+    if (displayExample) {
+      html += `<div style="font-size: 0.9rem; color: #555; font-style: italic;"><strong>Example:</strong> "${displayExample}"</div>`;
     }
     
     meaningDisplay.innerHTML = html;
     
-    // Automatically speak the definition
+    // Automatically speak the definition (use original unmasked version)
     speakWord(definition);
     
   } catch (error) {
@@ -656,9 +669,19 @@ meaningBtn.addEventListener('click', () => {
   fetchAndShowMeaning(currentWord);
 });
 
-// Submit attempt
-submitBtn.addEventListener('click', () => {
+// Submit attempt logic
+function submitAttempt() {
   const attempt = attemptInput.value.trim().toLowerCase();
+  
+  // Check if input is empty
+  if (attempt === '') {
+    const confirmed = confirm('You haven\'t typed anything yet. Are you sure you want to skip this word?');
+    if (!confirmed) {
+      attemptInput.focus();
+      return;
+    }
+  }
+  
   const correct = attempt === currentWord.toLowerCase();
   const timeSpent = (Date.now() - wordStartTime) / 1000; // Time spent in seconds
   
@@ -695,6 +718,17 @@ submitBtn.addEventListener('click', () => {
     // Show next button for wrong answers to let user review
     console.log('Wrong answer - showing next button');
     nextBtn.style.display = 'inline-block';
+  }
+}
+
+// Submit attempt button click
+submitBtn.addEventListener('click', submitAttempt);
+
+// Enter key to submit attempt
+attemptInput.addEventListener('keypress', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    submitAttempt();
   }
 });
 
@@ -860,11 +894,12 @@ async function showTrends() {
   document.getElementById('kpi-incorrect').textContent = incorrectCount;
   
   // === SESSION STATS ===
-  const sessions = [...new Set(practiceLogs.map(l => l.sessionId))];
+  const sessions = [...new Set(practiceLogs.map(l => l.sessionId))].sort((a, b) => a - b);
   const questionsPerSession = Math.round(total / sessions.length);
   document.getElementById('kpi-sessions').textContent = sessions.length;
   
   // === LAST SESSION STATS ===
+  // Get the most recent practice session (last in sorted order)
   const lastSessionId = sessions[sessions.length - 1];
   const lastSessionLogs = practiceLogs.filter(l => l.sessionId === lastSessionId);
   const lastSessionCorrect = lastSessionLogs.filter(l => l.correct).length;
@@ -1258,7 +1293,7 @@ async function showTestAnalytics() {
   document.getElementById('test-incorrect').textContent = testIncorrect;
 
   // === TEST SESSIONS ===
-  const testSessions = [...new Set(testLogs.map(l => l.sessionId))];
+  const testSessions = [...new Set(testLogs.map(l => l.sessionId))].sort((a, b) => a - b);
   document.getElementById('test-sessions').textContent = testSessions.length;
 
   // === WORD COVERAGE ===
@@ -1268,14 +1303,17 @@ async function showTestAnalytics() {
   document.getElementById('test-coverage').textContent = coverage + '%';
 
   // === LATEST TEST SESSION ===
+  // Get the most recent test session (last in sorted order)
   const lastTestSessionId = testSessions[testSessions.length - 1];
   const lastTestLogs = testLogs.filter(l => l.sessionId === lastTestSessionId);
+  
   const lastTestCorrect = lastTestLogs.filter(l => l.correct).length;
   const lastTestTotal = lastTestLogs.length;
   const lastTestAccuracy = ((lastTestCorrect / lastTestTotal) * 100).toFixed(0);
   const lastTestTime = Math.round(lastTestLogs.reduce((sum, l) => sum + (l.timeSpent || 0), 0) / 1000);
 
   const lastTestHtml = `
+    <div style="font-size: 12px; color: #666; margin-bottom: 12px; font-style: italic;">📌 Includes complete test (initial + any resumed attempts)</div>
     <div class="session-stat">
       <div class="session-stat-label">Words Tested</div>
       <div class="session-stat-value">${lastTestTotal}</div>
