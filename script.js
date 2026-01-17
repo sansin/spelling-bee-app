@@ -178,6 +178,11 @@ loginBtn.addEventListener('click', async () => {
     const rawUsername = usernameInput.value.trim();
     console.log('Username entered:', rawUsername);
     
+    if (!rawUsername) {
+      alert('Please enter a username');
+      return;
+    }
+    
     // SECURITY: Validate username format and content
     const usernameValidation = window.securityContext?.validateUsername ? 
       window.securityContext.validateUsername(rawUsername) : 
@@ -203,10 +208,23 @@ loginBtn.addEventListener('click', async () => {
       console.warn('csrfProtection not available');
     }
     
+    // Load Firebase logs with timeout
     console.log('About to load Firebase logs...');
-    await loadUserLogsFromFirebase();
-    console.log('Firebase logs loaded successfully');
+    try {
+      // Use Promise.race with timeout to prevent hanging
+      const loadPromise = loadUserLogsFromFirebase();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Firebase load timeout')), 5000)
+      );
+      
+      await Promise.race([loadPromise, timeoutPromise]);
+      console.log('Firebase logs loaded successfully');
+    } catch (firebaseError) {
+      console.warn('Firebase load failed or timed out, proceeding anyway:', firebaseError.message);
+      logs = [];
+    }
     
+    console.log('Showing home screen...');
     showHome();
     console.log('=== LOGIN SUCCESSFUL - HOME SCREEN SHOWN ===');
   } catch (error) {
