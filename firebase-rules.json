@@ -1,0 +1,24 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid",
+        "logs": {
+          "$logId": {
+            ".validate": "newData.hasChildren(['word', 'attempt', 'correct', 'timestamp', 'sessionId', 'user']) && newData.child('word').isString() && newData.child('word').val().length > 0 && newData.child('word').val().length <= 50 && newData.child('attempt').isString() && newData.child('attempt').val().length <= 100 && newData.child('correct').isBoolean() && newData.child('timestamp').isNumber() && newData.child('sessionId').isString() && newData.child('user').isString()"
+          }
+        }
+      }
+    },
+    "sessions": {
+      "$sessionId": {
+        ".read": true,
+        ".write": "auth !== null",
+        ".validate": "newData.hasChildren(['userId', 'startTime', 'testMode']) && newData.child('userId').isString() && newData.child('startTime').isNumber() && newData.child('testMode').isString() && (newData.child('testMode').val() === 'practice' || newData.child('testMode').val() === 'test')"
+      }
+    },
+    ".read": false,
+    ".write": false
+  }
+}
