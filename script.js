@@ -131,19 +131,29 @@ async function loadUserLogsFromFirebase() {
     // Load data once with promise
     const snapshot = await userRef.once('value');
     const data = snapshot.val();
-    logs = data ? Object.values(data) : [];
-    console.log(`✓ Loaded ${logs.length} logs for ${currentUser}`);
+    const firebaseLogs = data ? Object.values(data) : [];
+    
+    // Merge Firebase logs with existing localStorage logs
+    // Keep all logs, Firebase will be source of truth for synced data
+    if (firebaseLogs.length > 0) {
+      // Only update if Firebase has data, otherwise keep existing logs
+      logs = firebaseLogs;
+    }
+    console.log(`✓ Loaded ${logs.length} logs for ${currentUser} from Firebase`);
     
     // Also set up real-time listener for future updates
     userRef.off('value'); // Remove old listener if exists
     userRef.on('value', (snap) => {
       const newData = snap.val();
-      logs = newData ? Object.values(newData) : [];
-      console.log(`✓ Updated: ${logs.length} logs for ${currentUser}`);
+      const updatedLogs = newData ? Object.values(newData) : [];
+      if (updatedLogs.length > 0) {
+        logs = updatedLogs;
+      }
+      console.log(`✓ Real-time updated: ${logs.length} logs for ${currentUser}`);
     });
   } catch (error) {
     console.error('Error loading Firebase logs:', error);
-    logs = [];
+    // Don't clear logs on error - keep the localStorage data
   }
 }
 
@@ -210,13 +220,19 @@ loginBtn.addEventListener('click', async () => {
     
     // Try to restore logs from localStorage first
     const savedLogs = localStorage.getItem('logs');
+    console.log('DEBUG LOGIN: savedLogs from localStorage:', savedLogs ? savedLogs.substring(0, 200) : 'NONE');
     if (savedLogs) {
       try {
         logs = JSON.parse(savedLogs);
-        console.log('Restored logs from localStorage:', logs.length);
+        console.log('Restored logs from localStorage:', logs.length, 'logs');
+        console.log('DEBUG LOGIN: logs array after restore:', logs);
       } catch (e) {
+        console.error('Failed to parse logs from localStorage:', e);
         logs = [];
       }
+    } else {
+      console.log('DEBUG LOGIN: No logs in localStorage');
+      logs = [];
     }
     
     // Load Firebase logs in background (non-blocking)
@@ -983,8 +999,18 @@ async function showTrends() {
   // Don't reload from Firebase - use current logs (already restored from localStorage at login)
   // Firebase loads in background and will update logs array via real-time listener
   
+  console.log('DEBUG showTrends: total logs in array:', logs.length);
+  console.log('DEBUG showTrends: currentUser:', currentUser);
+  console.log('DEBUG showTrends: logs array:', logs);
+  
   // Filter logs to only current user's practice sessions (not test mode)
-  const practiceLogs = logs.filter(l => l.user === currentUser && (!l.testMode || l.testMode === 'practice'));
+  // Support both old logs (without user field) and new logs (with user field)
+  const practiceLogs = logs.filter(l => {
+    const isCurrentUser = !l.user || l.user === currentUser;  // If no user field, assume it's current user (backward compatibility)
+    const isPracticeMode = !l.testMode || l.testMode === 'practice';
+    console.log(`DEBUG: log word=${l.word}, user=${l.user}, currentUser=${currentUser}, isCurrentUser=${isCurrentUser}, isPracticeMode=${isPracticeMode}`);
+    return isCurrentUser && isPracticeMode;
+  });
   
   console.log('Showing trends. Current user practice logs:', practiceLogs.length);
   
@@ -1384,7 +1410,8 @@ async function showTrends() {
 // === PRACTICE TEST ANALYTICS ===
 async function showTestAnalytics() {
   // Filter logs for test mode AND current user only
-  const testLogs = logs.filter(l => l.testMode === 'test' && l.user === currentUser);
+  // Support both old logs (without user field) and new logs (with user field)
+  const testLogs = logs.filter(l => l.testMode === 'test' && (!l.user || l.user === currentUser));
   
   if (testLogs.length === 0) {
     document.getElementById('test-accuracy').textContent = 'No data yet';
