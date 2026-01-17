@@ -186,6 +186,12 @@ loginBtn.addEventListener('click', async () => {
   localStorage.setItem('currentUser', currentUser);
   console.log('User saved to localStorage');
   
+  // CSRF: Create token on login for session protection
+  if (window.csrfProtection) {
+    const csrfToken = window.csrfProtection.createToken(currentUser);
+    console.log('CSRF token created for session');
+  }
+  
   await loadUserLogsFromFirebase();
   console.log('Firebase logs loaded, showing home...');
   
@@ -208,6 +214,11 @@ logoutBtn.addEventListener('click', async () => {
       await window.gamification.saveGameificationData(currentUser);
     }
     
+    // CSRF: Clear token on logout
+    if (window.csrfProtection) {
+      window.csrfProtection.clearToken();
+    }
+    
     currentUser = null;
     localStorage.removeItem('currentUser');
     logs = [];
@@ -228,6 +239,11 @@ if (logoutBtnAnalytics) {
       // GAMIFICATION: Save stats before logout
       if (window.gamification && currentUser) {
         await window.gamification.saveGameificationData(currentUser);
+      }
+      
+      // CSRF: Clear token on logout
+      if (window.csrfProtection) {
+        window.csrfProtection.clearToken();
       }
       
       currentUser = null;
@@ -700,6 +716,18 @@ meaningBtn.addEventListener('click', () => {
 // Submit attempt logic
 function submitAttempt() {
   const rawAttempt = attemptInput.value.trim().toLowerCase();
+  
+  // CSRF: Validate token for state-changing operation
+  if (window.csrfProtection) {
+    const tokenValidation = window.csrfProtection.validateToken('submitAnswer', 
+      window.csrfProtection.getTokenForRequest(), currentUser);
+    if (!tokenValidation.valid) {
+      console.error('CSRF validation failed:', tokenValidation.error);
+      feedback.innerHTML = 'Session expired. Please login again.';
+      feedback.style.color = '#ff6b6b';
+      return;
+    }
+  }
   
   // SECURITY: Validate answer length and content
   const answerValidation = window.securityContext?.validateAnswer(rawAttempt);
