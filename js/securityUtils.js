@@ -2,9 +2,15 @@
  * Security Utilities Module
  * Provides input validation, sanitization, and security helper functions
  * 
- * Usage:
+ * Usage (ES6 Module):
  * import { validateAnswerLength, escapeHTML, validateUsername } from './securityUtils.js';
+ * 
+ * Usage (Browser Script Tag):
+ * <script src="js/securityUtils.js"></script>
+ * // Functions available as window.validateAnswerLength, etc.
  */
+
+'use strict';
 
 // ============================================================
 // INPUT VALIDATION
@@ -16,7 +22,7 @@
  * @param {number} maxLength - Maximum allowed length (default: 100)
  * @returns {Object} { valid: boolean, error?: string, trimmed?: string }
  */
-export function validateAnswerLength(answer, maxLength = 100) {
+function validateAnswerLength(answer, maxLength = 100) {
   if (typeof answer !== 'string') {
     return { valid: false, error: 'Answer must be text' };
   }
@@ -39,7 +45,7 @@ export function validateAnswerLength(answer, maxLength = 100) {
  * @param {string} username - Username to validate
  * @returns {Object} { valid: boolean, error?: string, sanitized?: string }
  */
-export function validateUsername(username) {
+function validateUsername(username) {
   if (typeof username !== 'string') {
     return { valid: false, error: 'Username must be text' };
   }
@@ -72,7 +78,7 @@ export function validateUsername(username) {
  * @param {Object} logEntry - Log entry to validate
  * @returns {Object} { valid: boolean, error?: string }
  */
-export function validateLogEntry(logEntry) {
+function validateLogEntry(logEntry) {
   if (!logEntry || typeof logEntry !== 'object') {
     return { valid: false, error: 'Log entry must be an object' };
   }
@@ -130,7 +136,7 @@ export function validateLogEntry(logEntry) {
  * @param {string} text - Text to escape
  * @returns {string} Escaped text safe for HTML
  */
-export function escapeHTML(text) {
+function escapeHTML(text) {
   if (typeof text !== 'string') return '';
 
   const map = {
@@ -149,7 +155,7 @@ export function escapeHTML(text) {
  * @param {string} error - Error message
  * @returns {string} User-friendly message
  */
-export function sanitizeErrorMessage(error) {
+function sanitizeErrorMessage(error) {
   if (typeof error !== 'string') {
     return 'Something went wrong. Please try again later.';
   }
@@ -190,7 +196,7 @@ export function sanitizeErrorMessage(error) {
  * @param {any} response - API response to validate
  * @returns {Object} { valid: boolean, error?: string }
  */
-export function validateDictionaryAPIResponse(response) {
+function validateDictionaryAPIResponse(response) {
   if (!response) {
     return { valid: false, error: 'No response from API' };
   }
@@ -235,7 +241,7 @@ export function validateDictionaryAPIResponse(response) {
  * @param {any} defaultValue - Default value if parsing fails (default: {})
  * @returns {any} Parsed object or default value
  */
-export function safeJSONParse(json, defaultValue = {}) {
+function safeJSONParse(json, defaultValue = {}) {
   try {
     if (typeof json !== 'string') return defaultValue;
     return JSON.parse(json);
@@ -250,7 +256,7 @@ export function safeJSONParse(json, defaultValue = {}) {
  * @param {string} storageKey - Key to retrieve from localStorage
  * @returns {Array} Validated logs array
  */
-export function getSafeLogsFromStorage(storageKey = 'logs') {
+function getSafeLogsFromStorage(storageKey = 'logs') {
   try {
     const stored = localStorage.getItem(storageKey);
     if (!stored) return [];
@@ -278,7 +284,7 @@ export function getSafeLogsFromStorage(storageKey = 'logs') {
  * @param {number} cooldownMs - Cooldown period in milliseconds
  * @returns {Object} Rate limiter with canSubmit() method
  */
-export function createRateLimiter(cooldownMs = 2000) {
+function createRateLimiter(cooldownMs = 2000) {
   const lastSubmitTime = {};
 
   return {
@@ -315,7 +321,7 @@ export function createRateLimiter(cooldownMs = 2000) {
  * @param {number} maxSize - Maximum queue size (default: 100)
  * @returns {Object} Queue manager with add, get, clear methods
  */
-export function createOfflineQueue(maxSize = 100) {
+function createOfflineQueue(maxSize = 100) {
   let queue = [];
 
   return {
@@ -387,7 +393,7 @@ export function createOfflineQueue(maxSize = 100) {
  * @param {Object} options - Additional fetch options
  * @returns {Promise<Response>} Fetch response
  */
-export async function fetchWithTimeout(url, timeout = 5000, options = {}) {
+async function fetchWithTimeout(url, timeout = 5000, options = {}) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -410,6 +416,37 @@ export async function fetchWithTimeout(url, timeout = 5000, options = {}) {
 // ============================================================
 // EXPORTS FOR TESTING
 // ============================================================
+
+// Export to global scope for browser usage
+window.validateAnswerLength = validateAnswerLength;
+window.validateUsername = validateUsername;
+window.validateLogEntry = validateLogEntry;
+window.escapeHTML = escapeHTML;
+window.sanitizeErrorMessage = sanitizeErrorMessage;
+window.validateDictionaryAPIResponse = validateDictionaryAPIResponse;
+window.safeJSONParse = safeJSONParse;
+window.getSafeLogsFromStorage = getSafeLogsFromStorage;
+window.createRateLimiter = createRateLimiter;
+window.createOfflineQueue = createOfflineQueue;
+window.fetchWithTimeout = fetchWithTimeout;
+
+// ============================================================
+// ES6 EXPORTS FOR TESTING
+// ============================================================
+
+export {
+  validateAnswerLength,
+  validateUsername,
+  validateLogEntry,
+  escapeHTML,
+  sanitizeErrorMessage,
+  validateDictionaryAPIResponse,
+  safeJSONParse,
+  getSafeLogsFromStorage,
+  createRateLimiter,
+  createOfflineQueue,
+  fetchWithTimeout
+};
 
 export default {
   validateAnswerLength,

@@ -14,32 +14,40 @@ window.securityContext = {
   
   // Initialize security context
   init() {
-    // Import security utilities if available
-    if (typeof window.createRateLimiter === 'undefined' && typeof createRateLimiter !== 'undefined') {
-      window.createRateLimiter = createRateLimiter;
-      window.escapeHTML = escapeHTML;
-      window.validateAnswerLength = validateAnswerLength;
-      window.validateUsername = validateUsername;
-      window.sanitizeErrorMessage = sanitizeErrorMessage;
-      window.createOfflineQueue = createOfflineQueue;
-      window.validateLogEntry = validateLogEntry;
-    }
+    // Make validation functions available on securityContext for easy access
+    this.validateUsername = window.validateUsername || ((u) => ({ valid: !!u, sanitized: u }));
+    this.validateAnswer = (answer) => {
+      if (!window.validateAnswerLength) {
+        return { valid: answer && answer.trim().length > 0, trimmed: answer?.trim() || '' };
+      }
+      return window.validateAnswerLength(answer, 100);
+    };
+    this.sanitizeError = (error) => {
+      if (!window.sanitizeErrorMessage) {
+        return 'An error occurred. Please try again.';
+      }
+      return window.sanitizeErrorMessage(error?.message || error?.toString() || 'Unknown error');
+    };
+    this.escapeForDisplay = (text) => {
+      if (!window.escapeHTML) {
+        return String(text || '').replace(/[&<>"']/g, (char) => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        }[char]));
+      }
+      return window.escapeHTML(text);
+    };
     
     // Create rate limiter with 1.5 second cooldown
     this.rateLimiterSubmit = window.createRateLimiter ? window.createRateLimiter(1500) : null;
     
     // Create offline queue with 200 pending logs max
     this.offlineQueue = window.createOfflineQueue ? window.createOfflineQueue(200) : null;
-  },
-  
-  // Validate and sanitize answer input
-  validateAnswer(answer) {
-    if (!window.validateAnswerLength) {
-      return { valid: answer && answer.trim().length > 0, trimmed: answer?.trim() || '' };
-    }
     
-    const result = window.validateAnswerLength(answer, 100);
-    return result;
+    console.log('Security context initialized successfully');
   },
   
   // Check rate limit for user
@@ -65,28 +73,6 @@ window.securityContext = {
     }
     
     return validation;
-  },
-  
-  // Sanitize error message for display
-  sanitizeError(error) {
-    if (!window.sanitizeErrorMessage) {
-      return 'An error occurred. Please try again.';
-    }
-    return window.sanitizeErrorMessage(error?.message || error?.toString() || 'Unknown error');
-  },
-  
-  // Escape text for safe display
-  escapeForDisplay(text) {
-    if (!window.escapeHTML) {
-      return String(text || '').replace(/[&<>"']/g, (char) => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-      }[char]));
-    }
-    return window.escapeHTML(text);
   }
 };
 
