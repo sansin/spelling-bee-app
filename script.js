@@ -980,8 +980,8 @@ async function showTrends() {
   home.style.display = 'none';
   trendsView.style.display = 'block';
   
-  // Load data from Firebase first
-  await loadUserLogsFromFirebase();
+  // Don't reload from Firebase - use current logs (already restored from localStorage at login)
+  // Firebase loads in background and will update logs array via real-time listener
   
   // Filter logs to only current user's practice sessions (not test mode)
   const practiceLogs = logs.filter(l => l.user === currentUser && (!l.testMode || l.testMode === 'practice'));
