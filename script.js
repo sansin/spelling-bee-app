@@ -208,21 +208,22 @@ loginBtn.addEventListener('click', async () => {
       console.warn('csrfProtection not available');
     }
     
-    // Load Firebase logs with timeout
-    console.log('About to load Firebase logs...');
-    try {
-      // Use Promise.race with timeout to prevent hanging
-      const loadPromise = loadUserLogsFromFirebase();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Firebase load timeout')), 5000)
-      );
-      
-      await Promise.race([loadPromise, timeoutPromise]);
-      console.log('Firebase logs loaded successfully');
-    } catch (firebaseError) {
-      console.warn('Firebase load failed or timed out, proceeding anyway:', firebaseError.message);
-      logs = [];
+    // Try to restore logs from localStorage first
+    const savedLogs = localStorage.getItem('logs');
+    if (savedLogs) {
+      try {
+        logs = JSON.parse(savedLogs);
+        console.log('Restored logs from localStorage:', logs.length);
+      } catch (e) {
+        logs = [];
+      }
     }
+    
+    // Load Firebase logs in background (non-blocking)
+    console.log('Loading Firebase logs in background...');
+    loadUserLogsFromFirebase().catch(err => 
+      console.warn('Firebase load failed:', err.message)
+    );
     
     console.log('Showing home screen...');
     showHome();
@@ -818,6 +819,8 @@ function submitAttempt() {
   }
   
   logs.push(logEntry);
+  // Save logs to localStorage for persistence
+  localStorage.setItem('logs', JSON.stringify(logs));
   saveUserLogsToFirebase(logEntry); // Save to Firebase
   
   if (correct) {
