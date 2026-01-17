@@ -14,6 +14,9 @@ window.securityContext = {
   
   // Initialize security context
   init() {
+    console.log('=== SECURITY CONTEXT INIT STARTING ===');
+    console.log('validateUsername available:', typeof window.validateUsername);
+    
     // Make validation functions available on securityContext for easy access
     this.validateUsername = window.validateUsername || ((u) => ({ valid: !!u, sanitized: u }));
     this.validateAnswer = (answer) => {
@@ -47,7 +50,10 @@ window.securityContext = {
     // Create offline queue with 200 pending logs max
     this.offlineQueue = window.createOfflineQueue ? window.createOfflineQueue(200) : null;
     
-    console.log('Security context initialized successfully');
+    console.log('=== SECURITY CONTEXT INIT COMPLETE ===');
+    console.log('validateUsername on securityContext:', typeof this.validateUsername);
+    console.log('rateLimiterSubmit:', !!this.rateLimiterSubmit);
+    console.log('offlineQueue:', !!this.offlineQueue);
   },
   
   // Check rate limit for user
@@ -76,9 +82,18 @@ window.securityContext = {
   }
 };
 
-// Initialize security context when page loads
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize security context immediately (not deferred)
+if (typeof window.validateUsername !== 'undefined') {
   window.securityContext.init();
+  console.log('Security context initialized immediately');
+}
+
+// Also ensure initialization happens if window functions load later
+window.addEventListener('DOMContentLoaded', () => {
+  if (typeof window.validateUsername !== 'undefined' && !window.securityContext.rateLimiterSubmit) {
+    window.securityContext.init();
+    console.log('Security context re-initialized on DOMContentLoaded');
+  }
 });
 
 // Patch global error handler to sanitize error messages

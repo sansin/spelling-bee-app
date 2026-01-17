@@ -167,36 +167,52 @@ function saveUserLogsToFirebase(logEntry) {
 
 // Login handler
 loginBtn.addEventListener('click', async () => {
-  console.log('Login button clicked');
-  const rawUsername = usernameInput.value.trim();
-  console.log('Username entered:', rawUsername);
-  
-  // SECURITY: Validate username format and content
-  const usernameValidation = window.securityContext?.validateUsername ? 
-    window.securityContext.validateUsername(rawUsername) : 
-    { valid: !!rawUsername, sanitized: rawUsername };
-  
-  if (!usernameValidation.valid) {
-    alert(usernameValidation.error || 'Please enter a valid username');
-    return;
+  try {
+    console.log('=== LOGIN HANDLER STARTED ===');
+    console.log('Login button clicked');
+    
+    // Check if securityContext exists
+    console.log('securityContext available:', !!window.securityContext);
+    console.log('securityContext.validateUsername available:', typeof window.securityContext?.validateUsername);
+    
+    const rawUsername = usernameInput.value.trim();
+    console.log('Username entered:', rawUsername);
+    
+    // SECURITY: Validate username format and content
+    const usernameValidation = window.securityContext?.validateUsername ? 
+      window.securityContext.validateUsername(rawUsername) : 
+      { valid: !!rawUsername, sanitized: rawUsername };
+    
+    console.log('Username validation result:', usernameValidation);
+    
+    if (!usernameValidation.valid) {
+      alert(usernameValidation.error || 'Please enter a valid username');
+      return;
+    }
+    
+    currentUser = usernameValidation.sanitized;
+    console.log('Current user set to:', currentUser);
+    localStorage.setItem('currentUser', currentUser);
+    console.log('User saved to localStorage');
+    
+    // CSRF: Create token on login for session protection
+    if (window.csrfProtection) {
+      const csrfToken = window.csrfProtection.createToken(currentUser);
+      console.log('CSRF token created:', !!csrfToken);
+    } else {
+      console.warn('csrfProtection not available');
+    }
+    
+    console.log('About to load Firebase logs...');
+    await loadUserLogsFromFirebase();
+    console.log('Firebase logs loaded successfully');
+    
+    showHome();
+    console.log('=== LOGIN SUCCESSFUL - HOME SCREEN SHOWN ===');
+  } catch (error) {
+    console.error('=== LOGIN ERROR ===', error);
+    alert('Login error: ' + (error.message || error.toString()));
   }
-  
-  currentUser = usernameValidation.sanitized;
-  console.log('Current user set to:', currentUser);
-  localStorage.setItem('currentUser', currentUser);
-  console.log('User saved to localStorage');
-  
-  // CSRF: Create token on login for session protection
-  if (window.csrfProtection) {
-    const csrfToken = window.csrfProtection.createToken(currentUser);
-    console.log('CSRF token created for session');
-  }
-  
-  await loadUserLogsFromFirebase();
-  console.log('Firebase logs loaded, showing home...');
-  
-  showHome();
-  console.log('showHome() called');
 });
 
 // Allow Enter key to login
