@@ -478,6 +478,49 @@ function speakWord(word) {
   speechSynthesis.speak(utterance);
 }
 
+// Detect incomplete test session
+function getIncompleteTestSession(grade) {
+  // Find all test sessions for this user and grade, sorted by timestamp (newest first)
+  const testSessions = logs.filter(l => 
+    l.user === currentUser && 
+    l.testMode === 'test' && 
+    (grade === 'all' || l.grade === grade)
+  );
+  
+  if (testSessions.length === 0) return null;
+  
+  // Group logs by sessionId and check if any session is incomplete
+  const sessionMap = {};
+  testSessions.forEach(log => {
+    if (!sessionMap[log.sessionId]) {
+      sessionMap[log.sessionId] = [];
+    }
+    sessionMap[log.sessionId].push(log);
+  });
+  
+  // Get the most recent session
+  const sessionIds = Object.keys(sessionMap).sort((a, b) => b - a);
+  if (sessionIds.length === 0) return null;
+  
+  const latestSessionId = sessionIds[0];
+  const latestSession = sessionMap[latestSessionId];
+  
+  // Get all words for this grade to compare
+  const allWordsForGrade = words.filter(w => grade === 'all' || w.grade === grade);
+  
+  // If the latest session has fewer words than available, it's incomplete
+  if (latestSession.length < allWordsForGrade.length) {
+    return {
+      sessionId: latestSessionId,
+      wordsCompleted: latestSession.length,
+      totalWords: allWordsForGrade.length,
+      currentIndex: latestSession.length // Resume from next word
+    };
+  }
+  
+  return null;
+}
+
 // Start practice (prioritized words)
 startBtn.addEventListener('click', () => {
   testMode = 'practice';
@@ -488,19 +531,96 @@ startBtn.addEventListener('click', () => {
   startSession();
 });
 
+
 // Start practice test (all words)
 const startTestBtn = document.getElementById('start-test');
 if (startTestBtn) {
   startTestBtn.addEventListener('click', () => {
     testMode = 'test';
     const grade = gradeSelect.value;
-    // Get all words (not prioritized)
-    currentWords = words.filter(w => grade === 'all' || w.grade === grade);
-    if (currentWords.length === 0) return alert('No words available for this grade.');
-    sessionId = Date.now();
-    startSession();
+    
+    // Check for incomplete test session
+    const incompleteTest = getIncompleteTestSession(grade);
+    
+    if (incompleteTest) {
+      // Show resume modal
+      showResumeModal(grade, incompleteTest);
+    } else {
+      // Start fresh test
+      startNewTest(grade);
+    }
   });
 }
+
+// Start a new test session
+function startNewTest(grade) {
+  currentWords = words.filter(w => grade === 'all' || w.grade === grade);
+  if (currentWords.length === 0) return alert('No words available for this grade.');
+  sessionId = Date.now();
+  currentIndex = 0;
+  startSession();
+}
+
+// Resume a previous test session
+function resumeTestSession(incompleteTest, grade) {
+  const resumeSessionLogs = logs.filter(l => l.sessionId === incompleteTest.sessionId);
+  currentWords = words.filter(w => grade === 'all' || w.grade === grade);
+  sessionId = incompleteTest.sessionId; // Keep the same session ID
+  currentIndex = incompleteTest.currentIndex;
+  startSession();
+}
+
+// Show resume modal
+function showResumeModal(grade, incompleteTest) {
+  const modal = document.getElementById('resume-modal');
+  const resumeBtn = document.getElementById('resume-btn');
+  const restartBtn = document.getElementById('restart-btn');
+  const closeBtn = document.getElementById('modal-close-btn');
+  const progressDisplay = document.getElementById('resume-progress');
+  
+  // Update progress display
+  progressDisplay.textContent = `${incompleteTest.wordsCompleted}/${incompleteTest.totalWords}`;
+  
+  // Show modal
+  modal.style.display = 'flex';
+  
+  // Helper function to close modal
+  const closeModal = () => {
+    modal.style.display = 'none';
+  };
+  
+  // Remove old event listeners to prevent duplicates
+  const newResumeBtn = resumeBtn.cloneNode(true);
+  const newRestartBtn = restartBtn.cloneNode(true);
+  const newCloseBtn = closeBtn.cloneNode(true);
+  resumeBtn.parentNode.replaceChild(newResumeBtn, resumeBtn);
+  restartBtn.parentNode.replaceChild(newRestartBtn, restartBtn);
+  closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+  
+  // Add new listeners
+  document.getElementById('resume-btn').addEventListener('click', () => {
+    closeModal();
+    resumeTestSession(incompleteTest, grade);
+  });
+  
+  document.getElementById('restart-btn').addEventListener('click', () => {
+    closeModal();
+    startNewTest(grade);
+  });
+  
+  // Close button (x icon)
+  document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+  
+  // Escape key to close modal
+  const handleEscapeKey = (event) => {
+    if (event.key === 'Escape') {
+      closeModal();
+      document.removeEventListener('keydown', handleEscapeKey);
+    }
+  };
+  document.addEventListener('keydown', handleEscapeKey);
+}
+
 
 
 function startSession() {

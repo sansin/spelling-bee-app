@@ -348,6 +348,27 @@
         </div><!-- End test-content -->
     </div>
 
+    <!-- Resume Test Modal -->
+    <div id="resume-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📝 Incomplete Test</h2>
+                <button id="modal-close-btn" class="modal-close-btn" title="Close">✕</button>
+            </div>
+            <div class="modal-body">
+                <p>You have an incomplete test for this grade. Would you like to resume where you left off or start a new test?</p>
+                <div style="margin: 16px 0; padding: 12px; background: #f0f4ff; border-radius: 8px; border-left: 4px solid #667eea;">
+                    <strong>Progress:</strong> <span id="resume-progress">0/0</span> words completed
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="resume-btn" class="btn-primary">↩️ Resume Test</button>
+                <button id="restart-btn" class="btn-secondary">🔄 Restart Test</button>
+            </div>
+        </div>
+        <div class="modal-backdrop"></div>
+    </div>
+
     <!-- Confetti Container (for celebrations) -->
     <div id="confetti-container" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999;"></div>
 
